@@ -3,7 +3,8 @@
 Branch `pi-platform-skills` adds a `pi` install target for
 [pi](https://github.com/earendil-works/pi). It sits on the lowest rung of the host
 ladder (Devin: skills only). The gap analysis behind it is in the `pi-vs-*-gaps.md`
-files next to this one; `pi-vs-devin-gaps.md` has the ladder.
+files next to this one; `pi-vs-devin-gaps.md` has the ladder. Progress and remaining
+work per rung: [TODO.md](TODO.md).
 
 ## What it does
 
