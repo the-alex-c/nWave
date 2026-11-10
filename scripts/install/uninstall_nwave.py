@@ -519,12 +519,14 @@ class NWaveUninstaller:
                 omp_agents_dir,
                 omp_config_root,
                 omp_skills_dir,
+                pi_skills_dir,
             )
         except ImportError:
             from shared.install_paths import (
                 omp_agents_dir,
                 omp_config_root,
                 omp_skills_dir,
+                pi_skills_dir,
             )
 
         omp_agents_manifest = omp_agents_dir() / ".nwave-agents-manifest.json"
@@ -556,6 +558,11 @@ class NWaveUninstaller:
                 self.logger.info(
                     f"    📄 Found OMP skills manifest: {omp_skills_manifest}"
                 )
+
+        pi_skills_manifest = pi_skills_dir() / ".nwave-manifest.json"
+        if pi_skills_manifest.exists():
+            installation_found = True
+            self.logger.info(f"    📄 Found pi skills manifest: {pi_skills_manifest}")
 
         native_runtime_dir = host_neutral_runtime_dir() / "des"
         if native_runtime_dir.exists():
