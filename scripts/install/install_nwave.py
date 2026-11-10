@@ -218,6 +218,7 @@ try:
     from scripts.install.plugins.opencode_agents_plugin import OpenCodeAgentsPlugin
     from scripts.install.plugins.opencode_commands_plugin import OpenCodeCommandsPlugin
     from scripts.install.plugins.opencode_skills_plugin import OpenCodeSkillsPlugin
+    from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
     from scripts.install.plugins.registry import PluginRegistry
     from scripts.install.plugins.skills_plugin import SkillsPlugin
     from scripts.install.plugins.templates_plugin import TemplatesPlugin
@@ -274,6 +275,7 @@ except ImportError:
     from plugins.opencode_agents_plugin import OpenCodeAgentsPlugin
     from plugins.opencode_commands_plugin import OpenCodeCommandsPlugin
     from plugins.opencode_skills_plugin import OpenCodeSkillsPlugin
+    from plugins.pi_skills_plugin import PiSkillsPlugin
     from plugins.registry import PluginRegistry
     from plugins.skills_plugin import SkillsPlugin
     from plugins.templates_plugin import TemplatesPlugin
@@ -1612,6 +1614,8 @@ class NWaveInstaller:
         # `des` shim on PATH. Probe confirmed on 2026-10-11.
         if target_platforms and "devin" in target_platforms:
             registry.register(DevinSkillsPlugin())
+        if target_platforms and "pi" in target_platforms:
+            registry.register(PiSkillsPlugin())
         registry.register(NwdesPlugin())
         if self.dev_mode and not self.dry_run:
             registry.register(DevLaunchersPlugin())
@@ -2384,6 +2388,7 @@ _HOST_PLATFORMS: tuple[tuple[str, str, str], ...] = (
     ("copilot", "copilot", "hooks only"),
     ("omp", "omp", "agents, skills, /nw-* commands and the tool_call guard extension"),
     ("devin", "devin", "skills only"),
+    ("pi", "pi", "skills only"),
 )
 _PLATFORM_CHOICES: tuple[tuple[str, frozenset[str] | None, str], ...] = (
     ("auto", None, "detect installed hosts; refuses when none is found"),

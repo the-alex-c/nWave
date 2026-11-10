@@ -1678,6 +1678,36 @@ class NWaveUninstaller:
         else:
             self.logger.warn(f"  ⚠️ Devin skills removal: {result.message}")
 
+    def remove_pi_skills(self) -> None:
+        """Remove manifest-owned nWave skills from the pi agent skills dir.
+
+        The installer copies ``nw-*`` skill directories when pi is
+        detected. Clean uninstall removes only names recorded in the
+        PiSkillsPlugin manifest; user-created skills are never touched.
+        """
+        if self.dry_run:
+            self.logger.info("  🚨 [DRY RUN] Would remove pi skills")
+            return
+
+        try:
+            from scripts.install.plugins.base import InstallContext
+            from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
+        except ImportError:
+            from plugins.base import InstallContext
+            from plugins.pi_skills_plugin import PiSkillsPlugin
+
+        context = InstallContext(
+            claude_dir=self.claude_config_dir,
+            scripts_dir=self.claude_config_dir / "scripts",
+            templates_dir=self.claude_config_dir / "templates",
+            logger=self.logger,
+        )
+        result = PiSkillsPlugin().uninstall(context)
+        if result.success:
+            self.logger.info("  🗑️ Removed pi skills")
+        else:
+            self.logger.warn(f"  ⚠️ pi skills removal: {result.message}")
+
     def remove_omp_assets(self) -> None:
         """Remove manifest-owned OMP skills, agents, commands and extension.
 
@@ -2173,6 +2203,7 @@ def main():
     uninstaller.remove_cursor_des_hooks()
     uninstaller.remove_kept_hook_registrations()
     uninstaller.remove_devin_skills()
+    uninstaller.remove_pi_skills()
     uninstaller.remove_omp_assets()
     uninstaller.remove_des_hook_scripts()
     uninstaller.remove_attribution()

@@ -276,6 +276,19 @@ DEVIN_PATH_REWRITES: tuple[tuple[str, str], ...] = (
 DEVIN_PATH_REWRITE_EXCEPTIONS: tuple[str, ...] = ("~/.claude/lib/python",)
 
 
+# -- Path Rewrite Rules (Claude Code -> pi) -----------------------------------
+
+PI_PATH_REWRITES: tuple[tuple[str, str], ...] = (
+    ("~/.claude/skills/", "~/.pi/agent/skills/"),
+    ("~/.claude/agents/nw/", "~/.pi/agent/skills/"),
+    ("~/.claude/agents/", "~/.pi/agent/skills/"),
+    ("~/.claude/nWave/skills/", "~/.pi/agent/skills/"),
+    ("~/.claude/nWave/", "~/.pi/agent/"),
+)
+
+PI_PATH_REWRITE_EXCEPTIONS: tuple[str, ...] = ("~/.claude/lib/python",)
+
+
 # -- OMP Agent Frontmatter Contract -------------------------------------------
 #
 # OMP task agents are Markdown with YAML frontmatter parsed by

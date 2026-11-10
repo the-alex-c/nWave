@@ -12,6 +12,7 @@ without running the full installer. It checks:
 - Codex DES hook, agents (181 skills, 36 agents) [--platform codex]
 - Cursor DES hook [--platform cursor]
 - Devin skills (181 skills) [--platform devin]
+- pi skills [--platform pi]
 
 The script supports multiple output modes:
 - Terminal: Human-readable colored output (default)
@@ -69,6 +70,7 @@ try:
     from scripts.install.plugins.codex_skills_plugin import CodexSkillsPlugin
     from scripts.install.plugins.devin_skills_plugin import DevinSkillsPlugin
     from scripts.install.plugins.nwave_hooks_plugin import HooksPlugin
+    from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
     from scripts.install.rich_console import RichLogger
 except ImportError:
     from context_detector import is_claude_code_context
@@ -83,10 +85,11 @@ except ImportError:
     from plugins.codex_skills_plugin import CodexSkillsPlugin
     from plugins.devin_skills_plugin import DevinSkillsPlugin
     from plugins.nwave_hooks_plugin import HooksPlugin
+    from plugins.pi_skills_plugin import PiSkillsPlugin
     from rich_console import RichLogger
 
 
-_NATIVE_PLATFORMS = ("codex", "cursor", "devin")
+_NATIVE_PLATFORMS = ("codex", "cursor", "devin", "pi")
 
 
 def _project_root() -> Path:
@@ -135,6 +138,8 @@ def verify_native_platform(
         results.append(HooksPlugin().verify(ctx))
     elif platform == "devin":
         results.append(DevinSkillsPlugin().verify(ctx))
+    elif platform == "pi":
+        results.append(PiSkillsPlugin().verify(ctx))
     return results
 
 
@@ -182,7 +187,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--platform",
-        choices=["claude-code", "codex", "cursor", "devin", "all"],
+        choices=["claude-code", "codex", "cursor", "devin", "pi", "all"],
         default="claude-code",
         help=(
             "Platform to verify (default: claude-code). "

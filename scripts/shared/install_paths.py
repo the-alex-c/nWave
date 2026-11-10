@@ -256,6 +256,20 @@ def devin_skills_dir() -> Path:
     return devin_config_dir() / "skills"
 
 
+PI_CODING_AGENT_DIR_ENV = "PI_CODING_AGENT_DIR"
+
+
+def pi_config_dir() -> Path:
+    """Return the pi agent directory, honoring PI_CODING_AGENT_DIR."""
+    override = env_or_none(PI_CODING_AGENT_DIR_ENV)
+    return Path(override) if override else Path.home() / ".pi" / "agent"
+
+
+def pi_skills_dir() -> Path:
+    """Return pi's global skills directory."""
+    return pi_config_dir() / "skills"
+
+
 # OMP (oh-my-pi) native roots. OMP 18.5 resolves TWO DIFFERENT roots, and the
 # installer must follow each faithfully:
 #
