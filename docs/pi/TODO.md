@@ -23,7 +23,7 @@ Branch: `pi-platform-rung-1`
 
 Not yet proven, does not block the rung:
 
-- [ ] Run `uninstall_nwave.py` against a pi install (plugin uninstall is tested; the CLI path is not)
+- [x] Run `uninstall_nwave.py` against a pi install (CLI path tested in `tests/pi/test_pi_uninstall_cli.py`; fixed a missing pi probe in `check_installation`, branch `pi-platform-rung-1`)
 - [ ] Decide whether `--platform auto` detects pi (currently explicit `--platform pi` only)
 
 ## Rung 2: Cursor / Copilot (guard hook)
