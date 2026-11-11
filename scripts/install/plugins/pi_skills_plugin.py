@@ -97,7 +97,8 @@ def _read_owned_manifest_strict(target_dir: Path) -> set[str]:
     names = document.get("installed_skills") if isinstance(document, dict) else None
     safe = (
         isinstance(document, dict)
-        and set(document) == {"installed_skills", "version"}
+        and set(document) - {"level"} == {"installed_skills", "version"}
+        and document.get("level", 2) in (1, 2)
         and document.get("version") == "1.0"
         and isinstance(names, list)
         and all(_is_plain_skill_name(name) for name in names)
@@ -108,10 +109,11 @@ def _read_owned_manifest_strict(target_dir: Path) -> set[str]:
     return set(names or [])
 
 
-def _write_manifest(target_dir: Path, installed_skill_names: list[str]) -> None:
+def _write_manifest(target_dir: Path, installed_skill_names: list[str], level: int) -> None:
     """Write the ownership manifest listing this run's installed skills."""
     manifest = {
         "installed_skills": sorted(installed_skill_names),
+        "level": level,
         "version": "1.0",
     }
     manifest_path = target_dir / _MANIFEST_FILENAME
@@ -322,7 +324,7 @@ class PiSkillsPlugin(InstallationPlugin):
                 for name in sorted(stale_names):
                     shutil.rmtree(_safe_owned_skill_dir(target_dir, name))
 
-                _write_manifest(target_dir, installed_names)
+                _write_manifest(target_dir, installed_names, pi_code_package.level(context.metadata))
             finally:
                 shutil.rmtree(staging_root, ignore_errors=True)
 
@@ -432,14 +434,11 @@ class PiSkillsPlugin(InstallationPlugin):
                     message=f"pi skills verification failed ({len(missing)} missing)",
                     errors=[f"missing or invalid: {', '.join(missing)}"],
                 )
+            lowered = pi_code_package.verify_level(context.metadata) < 2
             errors, warnings = (
-                ([], [])
-                if pi_code_package.level(context.metadata) < 2
-                else pi_code_package.check(pi_config_dir())
+                ([], []) if lowered else pi_code_package.check(pi_config_dir())
             )
-            for warning in warnings + (
-                [] if pi_code_package.level(context.metadata) < 2 else _shell_rc_warnings()
-            ):
+            for warning in warnings + ([] if lowered else _shell_rc_warnings()):
                 context.logger.info(f"  ⚠️ {warning}")
             if errors:
                 return PluginResult(

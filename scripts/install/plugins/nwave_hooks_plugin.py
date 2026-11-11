@@ -156,7 +156,7 @@ class HooksPlugin(InstallationPlugin):
         interpreter = self.interpreter
         for host, path in self._targets(context):
             try:
-                lowered = host == "pi" and pi_code_package.level(context.metadata) < 2
+                lowered = host == "pi" and pi_code_package.verify_level(context.metadata) < 2
                 if lowered and not path.is_file():
                     continue
                 if not path.is_file():

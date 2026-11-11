@@ -29,6 +29,19 @@ def level(metadata: dict[str, Any]) -> int:
     return int(metadata.get("pi_level") or MAX_LEVEL)
 
 
+def verify_level(metadata: dict[str, Any]) -> int:
+    """Level to verify: explicit, else the one recorded in the skills manifest, else highest."""
+    from scripts.shared.install_paths import pi_skills_dir
+
+    if metadata.get("pi_level"):
+        return level(metadata)
+    try:
+        recorded = json.loads((pi_skills_dir() / ".nwave-manifest.json").read_text(encoding="utf-8"))["level"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return MAX_LEVEL
+    return recorded if recorded in (1, MAX_LEVEL) else MAX_LEVEL
+
+
 def _run(args: list[str]) -> None:
     subprocess.run(["pi", *args], check=True, timeout=300)
 
