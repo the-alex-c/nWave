@@ -38,7 +38,11 @@ Pi already exceeds these on skills, commands and `AGENTS.md`. Only the guard is 
 - [ ] Add `pi` to `HOSTS` in `nwave_ai/hooks/__main__.py` (until then `--host pi` is rejected and the wrapper blocks every call). Check whether `registration.py` needs it too (probably not; no file merge for pi) and whether the two `HOSTS` tuples must match
 - [ ] Installer step: `pi install npm:pi-code` with the hooks-only filter `{"source":"npm:pi-code","extensions":["extensions/hooks/index.ts"]}` in pi's settings
 - [ ] Installer step: write the `PreToolUse` entry (matcher `Bash|Write|Edit`) with the exit-code wrapper `<cmd>; rc=$?; [ $rc -eq 0 ] || exit 2` and an explicit `timeout`
-- [ ] Decide where the hook file lives and how `CLAUDE_CONFIG_DIR` reaches pi. The installer cannot set the user's environment. The ADR says `~/.pi/agent`, but that dir already holds pi's own `settings.json`; untested whether both uses of one file coexist. Alternative: a separate dir, or shared `~/.claude` (double fire with Claude Code)
+- [x] Hook file location: `~/.pi/agent/settings.json`, shared with pi's own keys. Coexistence passes ([falsifier #7](research/rung-2/pi-code-falsifiers.md))
+- [x] Decision: `CLAUDE_CONFIG_DIR=~/.pi/agent` reaches pi through a shell function, not a global export (that moves Claude Code's config) and not an alias. The guard fails open without it (#7)
+- [ ] Installer step: print `pi() { CLAUDE_CONFIG_DIR="$HOME/.pi/agent" command pi "$@"; }`; on a TTY, ask to add it to the rc file chosen from `$SHELL`: zsh `~/.zshrc`; bash `~/.bash_profile` on macOS, `~/.bashrc` on Linux. Other shells: print only. Block between `# >>> nwave pi >>>` / `# <<< nwave pi <<<` markers, idempotent, recorded in the pi manifest; `--shell-rc yes|no` for non-interactive runs (default `no`, print only)
+- [ ] Uninstall removes exactly the marked rc block. Tests: add, re-add (idempotent), remove, user text around the block untouched, no-TTY default
+- [ ] `verify --platform pi` checks the rc block and warns when `CLAUDE_CONFIG_DIR` is not set in the current environment (IDE, cron or other-shell launches still fail open)
 - [ ] Tests: hook round trip against real `nwave_ai.hooks` (stub exit codes, wrapper); real-pi run in an isolated `PI_CODING_AGENT_DIR` through the installer, not hand-built config
 - [ ] Optional hygiene: inactive-repo behaviour; orphaned child after a hook timeout
 

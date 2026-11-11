@@ -10,6 +10,7 @@ Run log for the falsifiers in [pi-code-analysis.md](pi-code-analysis.md). One se
 | 4 | Child `pi` process fires `tool_call` hooks; payload gaps | **Pass** (hooks fire; identity gap confirmed) | 2026-11-10 |
 | 5 | `CLAUDE_CONFIG_DIR` redirects hook lookup | **Pass** | 2026-11-10 |
 | 6 | Real nWave guard (`nwave_ai.hooks`) behind the wrapper: block, allow, rewrite | **Pass** | 2026-11-10 |
+| 7 | One `settings.json` holds pi's keys and the hooks (`CLAUDE_CONFIG_DIR` = `PI_CODING_AGENT_DIR`) | **Pass**; env delivery fails open | 2026-11-10 |
 
 ## 1. Hooks-only install, payload, block
 
@@ -148,3 +149,24 @@ Prompt: `bash echo hello-bash`; `write a.txt 'one'`; `edit a.txt one->two`; `bas
 - `--host pi` is rejected by argparse (exit 2) today, so with the wrapper every call would be blocked. `pi` must be added to `HOSTS` before the registered command can use it.
 
 **Limits.** One run, one model. Single-entry `edit` only; a multi-edit `edits[]` payload was not sent. `write`/`edit` `updatedInput` not exercised (nWave only rewrites Bash). Hooks ran from `$CLAUDE_CONFIG_DIR` at user level; a trusted-project variant, `SessionStart`/`SessionEnd`, `ask`/`defer` and a sub-agent were not run. The `freshness.stale` line appears because the scratch home has no install manifest.
+
+## 7. One `settings.json` for pi and the hooks
+
+**Setup.** Fake `HOME`, scratch git repo, `PI_CODING_AGENT_DIR` = `CLAUDE_CONFIG_DIR` = one dir `D`. `D/settings.json` written by hand with pi keys (`defaultProvider`, `defaultModel`) and a `hooks.PreToolUse` entry (matcher `Bash|Write|Edit`, wrapper, `timeout: 10`) that logs stdin and exits 2 on `BLOCKME`. Then `pi install npm:pi-code`, then `packages` edited to the hooks-only filter. pi 1.4.0, model `anthropic/claude-haiku-4-5`, `-p --no-session --offline`, stdin `/dev/null`.
+
+| Check | Result |
+|---|---|
+| `pi install` rewrites the file | `hooks`, `defaultProvider`, `defaultModel` kept; `packages` added |
+| Second `pi install` on the filtered entry | Filter kept (`pi list` shows `(filtered)`); all four keys kept |
+| Allowed `bash` call | Ran. Hook payload as in #1 |
+| `bash echo BLOCKME` | Did not run. Tool result `error: blocked by f7` |
+| Same call, `CLAUDE_CONFIG_DIR` unset (control) | **Ran.** No hook call logged. The guard is off and pi says nothing |
+
+**Results.**
+
+- pi and pi-code share one file. pi ignores the `hooks` key and keeps it on its own writes. Source agrees: `settings-manager.js:449-472` reads the file, merges only the changed fields, writes back.
+- Registering the guard in `~/.pi/agent/settings.json` works, but only when `CLAUDE_CONFIG_DIR` reaches the pi process. Without it pi-code reads `~/.claude/settings.json`, and the guard fails open. A missing variable is the main way this setup breaks.
+- The installer cannot fix this from inside pi. pi-code's `env` injection (`env-settings.ts`) reads the same chain, so it needs `CLAUDE_CONFIG_DIR` already set. pi's `settings-manager.js` has no env key. It is also outside the hooks-only filter.
+- Do not export `CLAUDE_CONFIG_DIR=~/.pi/agent` globally. Claude Code reads the same variable and would move its config. Scope it to pi, for example `alias pi='CLAUDE_CONFIG_DIR=~/.pi/agent pi'` or a wrapper script.
+
+**Limits.** `pi -p` only. Writes from interactive `/model`, `/settings` not run (source read only). No `SessionStart`/`End`. The first run, `--mode json` with a two-call prompt, hung for 180 s with empty output and no hook call; the same setup passed in text mode. Cause unknown, as in #2.
