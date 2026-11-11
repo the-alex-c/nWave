@@ -21,6 +21,13 @@ _NAME = re.compile(r"^npm:pi-code(@.+)?$")
 
 which = shutil.which
 
+MAX_LEVEL = 2
+
+
+def level(metadata: dict[str, Any]) -> int:
+    """Install rung: 1 = skills, 2 = skills + guard (default: highest)."""
+    return int(metadata.get("pi_level") or MAX_LEVEL)
+
 
 def _run(args: list[str]) -> None:
     subprocess.run(["pi", *args], check=True, timeout=300)

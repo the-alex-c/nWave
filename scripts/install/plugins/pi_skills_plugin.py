@@ -105,7 +105,7 @@ def _read_owned_manifest_strict(target_dir: Path) -> set[str]:
     )
     if not safe:
         raise ValueError(f"untrusted pi skills manifest: {manifest_path}")
-    return set(names)
+    return set(names or [])
 
 
 def _write_manifest(target_dir: Path, installed_skill_names: list[str]) -> None:
@@ -329,9 +329,14 @@ class PiSkillsPlugin(InstallationPlugin):
             context.logger.info(
                 f"  ✅ pi skills installed ({len(installed_names)} skills)"
             )
-            if not context.dry_run:
-                pi_code_package.ensure(pi_config_dir(), context.logger)
-            _setup_shell_rc(context)
+            if pi_code_package.level(context.metadata) < 2:
+                if not context.dry_run:
+                    _remove_shell_rc()
+                    pi_code_package.remove(pi_config_dir(), context.logger)
+            else:
+                if not context.dry_run:
+                    pi_code_package.ensure(pi_config_dir(), context.logger)
+                _setup_shell_rc(context)
             return PluginResult(
                 success=True,
                 plugin_name=self.name,
@@ -427,8 +432,14 @@ class PiSkillsPlugin(InstallationPlugin):
                     message=f"pi skills verification failed ({len(missing)} missing)",
                     errors=[f"missing or invalid: {', '.join(missing)}"],
                 )
-            errors, warnings = pi_code_package.check(pi_config_dir())
-            for warning in warnings + _shell_rc_warnings():
+            errors, warnings = (
+                ([], [])
+                if pi_code_package.level(context.metadata) < 2
+                else pi_code_package.check(pi_config_dir())
+            )
+            for warning in warnings + (
+                [] if pi_code_package.level(context.metadata) < 2 else _shell_rc_warnings()
+            ):
                 context.logger.info(f"  ⚠️ {warning}")
             if errors:
                 return PluginResult(

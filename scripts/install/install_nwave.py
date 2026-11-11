@@ -16,7 +16,7 @@ import os
 import shlex
 import sys
 from pathlib import Path
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from scripts.install.plugins.base import PluginResult
 
@@ -634,6 +634,7 @@ class NWaveInstaller:
         platform_override: set[str] | None = None,
         dev_mode: bool = False,
         shell_rc: str | None = None,
+        pi_level: int | None = None,
     ):
         """Initialize installer.
 
@@ -645,6 +646,7 @@ class NWaveInstaller:
         self.dry_run = dry_run
         self.dev_mode = dev_mode
         self.shell_rc = shell_rc
+        self.pi_level = pi_level
         self._platform_override = platform_override
         # The install must have one target truth.  In particular, auto mode
         # cannot install a detected Codex target and later reconstruct a
@@ -1862,12 +1864,13 @@ class NWaveInstaller:
         # Create plugin registry and install all components
         registry = self._create_plugin_registry(target_platforms=target_platforms)
 
-        metadata = {
+        metadata: dict[str, Any] = {
             _ATTESTED_LEGACY_SKILLS_METADATA_KEY: self._attested_legacy_codex_skill_names
         }
         if self._codex_legacy_witness is not None:
             metadata[_CODEX_LEGACY_WITNESS_KEY] = self._codex_legacy_witness
         metadata["pi_shell_rc"] = self.shell_rc
+        metadata["pi_level"] = self.pi_level
 
         # Create installation context with all required utilities
         context = InstallContext(
@@ -1974,6 +1977,7 @@ class NWaveInstaller:
             dry_run=self.dry_run,
             dev_mode=self.dev_mode,
             target_platforms=target_platforms,
+            metadata={"pi_level": self.pi_level},
         )
         plugin_results = plugin_registry.verify_all(plugin_context)
         plugin_failures = {
@@ -2391,7 +2395,7 @@ _HOST_PLATFORMS: tuple[tuple[str, str, str], ...] = (
     ("copilot", "copilot", "hooks only"),
     ("omp", "omp", "agents, skills, /nw-* commands and the tool_call guard extension"),
     ("devin", "devin", "skills only"),
-    ("pi", "pi", "skills only"),
+    ("pi", "pi", "skills (level 1) and the PreToolUse guard (level 2, default)"),
 )
 _PLATFORM_CHOICES: tuple[tuple[str, frozenset[str] | None, str], ...] = (
     ("auto", None, "detect installed hosts; refuses when none is found"),
@@ -2531,6 +2535,13 @@ def main():
         default=None,
         help="pi: add the CLAUDE_CONFIG_DIR wrapper to your shell rc (default: ask on a TTY, else print only)",
     )
+    parser.add_argument(
+        "--pi-level",
+        type=int,
+        choices=[1, 2],
+        default=None,
+        help="pi: 1 = skills only, 2 = skills + guard (default: 2). Re-installing at a lower level removes the higher level's parts",
+    )
     # Retired (Ruling B): accepted only so that a run passing it is refused with
     # a WHAT/WHY/HOW report. Hidden from --help.
     parser.add_argument(
@@ -2559,6 +2570,7 @@ def main():
         platform_override=platform_override,
         dev_mode=args.dev,
         shell_rc=args.shell_rc,
+        pi_level=args.pi_level,
     )
 
     # Auto-detection must never guess a host.  In particular, defaulting an

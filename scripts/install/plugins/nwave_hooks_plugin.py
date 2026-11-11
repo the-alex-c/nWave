@@ -15,7 +15,12 @@ import os
 import sys
 from pathlib import Path
 
-from nwave_ai.hooks.registration import HOOK_FILE, interpreter_for_shell, merge
+from nwave_ai.hooks.registration import (
+    HOOK_FILE,
+    interpreter_for_shell,
+    merge,
+    without_registrations,
+)
 from nwave_ai.upgrade_shell import (
     Changed,
     Occupied,
@@ -23,6 +28,7 @@ from nwave_ai.upgrade_shell import (
     cursor_config_dir,
     real_port,
 )
+from scripts.shared import pi_code_package
 from scripts.install.plugins.base import (
     InstallationPlugin,
     InstallContext,
@@ -102,9 +108,13 @@ class HooksPlugin(InstallationPlugin):
                 )
                 if not isinstance(document, dict):
                     raise ValueError("top level is not a JSON object")
-                after = (
-                    json.dumps(merge(document, host, interpreter), indent=2) + "\n"
-                ).encode("utf-8")
+                if host == "pi" and pi_code_package.level(context.metadata) < 2:
+                    if before is None:
+                        continue
+                    wanted = without_registrations(document, host)
+                else:
+                    wanted = merge(document, host, interpreter)
+                after = (json.dumps(wanted, indent=2) + "\n").encode("utf-8")
                 if context.dry_run:
                     continue
                 path.parent.mkdir(parents=True, exist_ok=True)
@@ -146,12 +156,18 @@ class HooksPlugin(InstallationPlugin):
         interpreter = self.interpreter
         for host, path in self._targets(context):
             try:
+                lowered = host == "pi" and pi_code_package.level(context.metadata) < 2
+                if lowered and not path.is_file():
+                    continue
                 if not path.is_file():
                     raise FileNotFoundError(str(path))
                 document = json.loads(path.read_text(encoding="utf-8"))
                 if not isinstance(document, dict):
                     raise ValueError("top level is not a JSON object")
-                if merge(document, host, interpreter) != document:
+                if lowered:
+                    if without_registrations(document, host) != document:
+                        raise ValueError("pi guard present above the installed level")
+                elif merge(document, host, interpreter) != document:
                     raise ValueError("kept nWave hooks missing or stale")
             except (OSError, ValueError) as error:
                 message = (

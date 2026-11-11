@@ -8,7 +8,7 @@ work per rung: [TODO.md](TODO.md).
 
 ## What it does
 
-`nwave-ai install --platform pi` copies the public `nw-*` skills to
+`nwave-ai install --platform pi [--pi-level 1|2]` copies the public `nw-*` skills to
 `~/.pi/agent/skills/<name>/SKILL.md` (or `$PI_CODING_AGENT_DIR/skills/`) and
 writes `.nwave-manifest.json` there.
 
@@ -21,9 +21,25 @@ writes `.nwave-manifest.json` there.
   `~/.pi/agent/...` (`PI_PATH_REWRITES`).
 - **Explicit only:** `--platform pi` must be passed. `auto` does not detect pi.
 
+## Levels
+
+`--pi-level 1|2` picks the rung. Rung 2 builds on rung 1.
+
+| Level | Installs |
+|---|---|
+| 1 | Skills only. |
+| 2 (default) | Level 1 + the guard (below). |
+
+Re-installing at a lower level removes what the target level would not install on
+its own: nWave's pi-code (only if nWave installed it), the `PreToolUse` hook entry and
+the marked shell-rc block. Your other `settings.json` keys and a pi-code you installed
+yourself are kept. At level 1, `verify` does not ask for the guard and fails if a hook
+entry is still present. The level is not persisted yet: standalone `verify` assumes 2.
+Tests: `tests/pi/test_pi_levels.py`.
+
 ## Guard (rung 2)
 
-The same install also sets up the nWave guard, so `git stash`, edits to
+A level 2 install (the default) also sets up the nWave guard, so `git stash`, edits to
 `execution-log.json` and similar are blocked before pi runs them.
 
 - **pi-code:** installs pinned [pi-code](https://github.com/ilovepixelart/pi-code)
@@ -98,6 +114,7 @@ version resolution.
 ## Open
 
 - Whether `auto` should detect pi.
+- Persist the chosen level so standalone `verify` knows it.
 - Tool-ceiling enforcement, model inheritance and the session format for
   `nwdes measure` are unverified in pi.
 - The pi plugin duplicates the Devin plugin. A shared base would shrink the diff
