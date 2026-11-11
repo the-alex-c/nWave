@@ -1,8 +1,8 @@
 # nWave on pi
 
-Branch `pi-platform-skills` adds a `pi` install target for
-[pi](https://github.com/earendil-works/pi). It sits on the lowest rung of the host
-ladder (Devin: skills only). The gap analysis behind it is in the `pi-vs-*-gaps.md`
+Branches `pi-platform-rung-1` and `pi-platform-rung-2` add a `pi` install target for
+[pi](https://github.com/earendil-works/pi). It covers the two lowest rungs of the host
+ladder: skills (Devin) and the guard hook (Cursor/Copilot). The gap analysis behind it is in the `pi-vs-*-gaps.md`
 files next to this one; `pi-vs-devin-gaps.md` has the ladder. Progress and remaining
 work per rung: [TODO.md](TODO.md).
 
@@ -21,9 +21,29 @@ writes `.nwave-manifest.json` there.
   `~/.pi/agent/...` (`PI_PATH_REWRITES`).
 - **Explicit only:** `--platform pi` must be passed. `auto` does not detect pi.
 
-Not included: hooks, role agents, delegation, typed replies. Pi has no
-equivalent of the Codex/OMP/Claude role machinery that nWave could use yet, so
-skills run as methodology guidance and `nwdes` is used from the shell.
+## Guard (rung 2)
+
+The same install also sets up the nWave guard, so `git stash`, edits to
+`execution-log.json` and similar are blocked before pi runs them.
+
+- **pi-code:** installs pinned [pi-code](https://github.com/ilovepixelart/pi-code)
+  with a hooks-only filter. nWave writes no pi extension.
+- **Hook entry:** a `PreToolUse` entry in `~/.pi/agent/settings.json` runs
+  `python -m nwave_ai.hooks PreToolUse --host pi`. Any failure of the hook blocks
+  the call.
+- **`CLAUDE_CONFIG_DIR`:** pi-code reads hooks from `$CLAUDE_CONFIG_DIR`. Without it
+  the guard fails open and pi says nothing. The installer prints a `pi()` shell
+  function that sets it for pi only; on a TTY it offers to add it to your shell rc
+  (`--shell-rc yes|no`). `verify` warns when the block or the variable is missing.
+- **Uninstall:** removes nWave's pi-code (only if nWave installed it), the hook
+  entry, and the marked rc block. pi's other settings are kept.
+
+Decisions: [ADR](research/rung-2/adr-pi-installer-for-rung-2.md) and
+[ADR](research/rung-2/adr-pi-code-for-rung-2.md).
+
+Not included: role agents, delegation, typed replies. Pi has no equivalent of the
+Codex/OMP/Claude role machinery that nWave could use yet, so skills run as
+methodology guidance and `nwdes` is used from the shell.
 
 ## Code map
 
@@ -32,6 +52,9 @@ skills run as methodology guidance and `nwdes` is used from the shell.
 | Plugin (copy of the Devin plugin, pi names and paths) | `scripts/install/plugins/pi_skills_plugin.py` |
 | `pi_config_dir()`, `pi_skills_dir()` | `scripts/shared/install_paths.py` |
 | `PI_PATH_REWRITES` and its exception list | `scripts/shared/platform_contracts.py`, `scripts/shared/skill_path_rewrite.py` |
+| pi-code install, filter and ownership marker | `scripts/shared/pi_code_package.py` |
+| `pi()` shell-rc block | `scripts/shared/pi_shell_rc.py` |
+| `pi` host and `PreToolUse` entry for pi | `nwave_ai/hooks/__main__.py`, `nwave_ai/hooks/registration.py` |
 | `--platform pi` registration | `scripts/install/install_nwave.py` |
 | Verify / uninstall | `scripts/install/verify_nwave.py`, `scripts/install/uninstall_nwave.py` |
 | `.gitignore`: `pi/` anchored to `/pi/` so `tests/pi/` is not ignored | `.gitignore` |
@@ -50,6 +73,13 @@ make test ARGS="-k discovers"   # filter
   `pi` process. It runs `pi --offline --no-session --mode rpc`, sends
   `get_commands`, and compares the `skill:*` entries to the manifest. No LLM or
   network. It is skipped when `pi` is not on PATH.
+
+- `tests/pi/test_pi_guard_install.py`, `test_pi_shell_rc*.py` and
+  `test_pi_hook_host.py` check the guard install, the rc block and the `pi` host.
+- `tests/pi/test_pi_guard_round_trip.py` runs the installed hook command with
+  pi-shaped payloads against the real `nwave_ai.hooks`.
+- `tests/pi/test_pi_guard_real_pi.py` runs a real pi turn and checks the guard
+  blocks. Opt-in: `NWAVE_PI_E2E=1` (needs network, a pi login and an LLM).
 
 `uv run` creates an untracked `uv.lock`; delete it, it is not part of the change.
 
@@ -72,6 +102,6 @@ version resolution.
   `nwdes measure` are unverified in pi.
 - The pi plugin duplicates the Devin plugin. A shared base would shrink the diff
   if this is upstreamed.
-- Next rungs: a guard extension in a separate `nwave-pi` repo (Cursor/Copilot),
-  then role registry, delegation and typed reply (Codex). See `HANDOFF.md` and the
-  gap files.
+- Guard: inactive-repo behaviour and an orphaned hook child after a timeout are
+  untested.
+- Next rungs: role registry, delegation and typed reply (Codex). See the gap files.
