@@ -32,6 +32,10 @@ def add_block(rc: Path) -> bool:
     return True
 
 
+def has_block(rc: Path) -> bool:
+    return rc.exists() and BEGIN in rc.read_text(encoding="utf-8")
+
+
 def remove_block(rc: Path) -> bool:
     """Remove exactly the marked block. True when the file changed.
 

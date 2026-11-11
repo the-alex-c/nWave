@@ -63,3 +63,24 @@ def test_install_cli_accepts_shell_rc_flag(monkeypatch):
     monkeypatch.setattr(install_nwave, "_run_install", lambda args, installer: seen.update(rc=installer.shell_rc) or 0)
     assert install_nwave.main() == 0
     assert seen == {"rc": "yes"}
+
+
+def test_verify_warns_without_rc_block_or_env_and_stays_green(pi_dir, ctx, rc, monkeypatch, caplog):
+    monkeypatch.delenv("CLAUDE_CONFIG_DIR", raising=False)
+    plugin = PiSkillsPlugin()
+    assert plugin.install(ctx).success
+    caplog.set_level("INFO")
+    assert plugin.verify(ctx).success
+    assert "block not in" in caplog.text
+    assert "CLAUDE_CONFIG_DIR is not set" in caplog.text
+
+
+def test_verify_silent_with_rc_block_and_env(pi_dir, ctx, rc, monkeypatch, caplog):
+    monkeypatch.setenv("CLAUDE_CONFIG_DIR", str(pi_dir))
+    ctx.metadata["pi_shell_rc"] = "yes"
+    plugin = PiSkillsPlugin()
+    assert plugin.install(ctx).success
+    caplog.set_level("INFO")
+    assert plugin.verify(ctx).success
+    assert "block not in" not in caplog.text
+    assert "CLAUDE_CONFIG_DIR is not set" not in caplog.text

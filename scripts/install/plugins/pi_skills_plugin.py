@@ -42,6 +42,7 @@ from scripts.shared import pi_code_package
 from scripts.shared.pi_shell_rc import (
     FUNCTION,
     add_block,
+    has_block,
     rc_path,
     remove_block,
     should_add,
@@ -150,6 +151,17 @@ def _setup_shell_rc(context: InstallContext) -> None:
     if should_add(context.metadata.get("pi_shell_rc"), sys.stdin.isatty(), ask):
         changed = add_block(rc)
         context.logger.info(f"  ✅ {'Added to' if changed else 'Already in'} {rc}")
+
+
+def _shell_rc_warnings() -> list[str]:
+    """Non-fatal: --shell-rc no is valid, but the guard fails open without CLAUDE_CONFIG_DIR."""
+    warnings = []
+    rc = rc_path(os.environ.get("SHELL", ""), platform.system(), Path.home())
+    if rc is not None and not has_block(rc):
+        warnings.append(f"pi() wrapper block not in {rc}; the guard fails open unless CLAUDE_CONFIG_DIR is set another way")
+    if not os.environ.get("CLAUDE_CONFIG_DIR"):
+        warnings.append("CLAUDE_CONFIG_DIR is not set in this environment; pi started from here (IDE, cron, other shell) runs without the guard")
+    return warnings
 
 
 def _remove_shell_rc() -> None:
@@ -416,7 +428,7 @@ class PiSkillsPlugin(InstallationPlugin):
                     errors=[f"missing or invalid: {', '.join(missing)}"],
                 )
             errors, warnings = pi_code_package.check(pi_config_dir())
-            for warning in warnings:
+            for warning in warnings + _shell_rc_warnings():
                 context.logger.info(f"  ⚠️ {warning}")
             if errors:
                 return PluginResult(
