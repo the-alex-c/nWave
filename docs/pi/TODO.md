@@ -35,7 +35,7 @@ Branch: `pi-platform-rung-2`
 Pi already exceeds these on skills, commands and `AGENTS.md`. Only the guard is missing.
 
 - [x] Guard extension chosen: `pi-code` 1.7.0, hooks module only, no nWave extension code. [ADR](research/rung-2/adr-pi-code-for-rung-2.md); evidence in [pi-code-falsifiers.md](research/rung-2/pi-code-falsifiers.md) #1 to #6 (real nWave guard blocks, allows and rewrites through pi)
-- [ ] Add `pi` to `HOSTS` in `nwave_ai/hooks/__main__.py` (until then `--host pi` is rejected and the wrapper blocks every call). Check whether `registration.py` needs it too (probably not; no file merge for pi) and whether the two `HOSTS` tuples must match
+- [x] Add `pi` to `HOSTS` in `nwave_ai/hooks/__main__.py` (test: `tests/pi/test_pi_hook_host.py`). `registration.py` `HOSTS` left alone: it lists file-merge hosts only, and `omp`/`opencode` are already absent there, so the tuples need not match
 - [ ] Installer step: `pi install npm:pi-code` with the hooks-only filter `{"source":"npm:pi-code","extensions":["extensions/hooks/index.ts"]}` in pi's settings
 - [ ] Installer step: write the `PreToolUse` entry (matcher `Bash|Write|Edit`) with the exit-code wrapper `<cmd>; rc=$?; [ $rc -eq 0 ] || exit 2` and an explicit `timeout`
 - [x] Hook file location: `~/.pi/agent/settings.json`, shared with pi's own keys. Coexistence passes ([falsifier #7](research/rung-2/pi-code-falsifiers.md))
