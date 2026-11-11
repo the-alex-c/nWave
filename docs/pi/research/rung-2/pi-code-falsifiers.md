@@ -170,3 +170,18 @@ Prompt: `bash echo hello-bash`; `write a.txt 'one'`; `edit a.txt one->two`; `bas
 - Do not export `CLAUDE_CONFIG_DIR=~/.pi/agent` globally. Claude Code reads the same variable and would move its config. Scope it to pi, for example `alias pi='CLAUDE_CONFIG_DIR=~/.pi/agent pi'` or a wrapper script.
 
 **Limits.** `pi -p` only. Writes from interactive `/model`, `/settings` not run (source read only). No `SessionStart`/`End`. The first run, `--mode json` with a two-call prompt, hung for 180 s with empty output and no hook call; the same setup passed in text mode. Cause unknown, as in #2.
+
+## 8. pi-code install, update and remove on pi 1.4.0
+
+**Setup.** Isolated `PI_CODING_AGENT_DIR`, pi 1.4.0. Used by the installer in `scripts/shared/pi_code_package.py`; see [the installer ADR](adr-pi-installer-for-rung-2.md).
+
+**Results.**
+
+- `pi install npm:pi-code@X` records `npm:pi-code@X` and installs X.
+- `pi update --extensions` and `--extension` leave a pinned source at its version (tested 1.6.2 while latest is 1.7.0).
+- `pi install` over an existing object-form entry keeps the filter and other keys (idempotent).
+- `pi remove` matches the object-form entry with the pinned or the bare source and keeps other settings keys.
+- `pi list` shows `(filtered)`.
+- After `pi remove`, `npm/node_modules` kept dependency dirs (`@hono`, `@modelcontextprotocol`) while `pi-code` itself was gone. Minor.
+
+**Limits.** pi 1.4.0 only. No network failure or partial-install cases.
