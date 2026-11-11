@@ -15,7 +15,10 @@ untouched by construction.
 from __future__ import annotations
 
 import json
+import os
+import platform
 import shutil
+import sys
 from pathlib import Path
 from shutil import which as _which
 
@@ -34,6 +37,13 @@ from scripts.shared.install_paths import pi_config_dir, pi_skills_dir
 from scripts.shared.skill_distribution import (
     enumerate_skills,
     filter_public_skills,
+)
+from scripts.shared.pi_shell_rc import (
+    FUNCTION,
+    add_block,
+    rc_path,
+    remove_block,
+    should_add,
 )
 from scripts.shared.skill_path_rewrite import rewrite_host_paths
 
@@ -125,6 +135,26 @@ def _safe_owned_skill_dir(target_dir: Path, name: str) -> Path:
     if skill_dir.parent != target_dir or skill_dir.is_symlink():
         raise ValueError(f"unsafe pi skill directory: {skill_dir}")
     return skill_dir
+
+
+def _setup_shell_rc(context: InstallContext) -> None:
+    """Print the pi() wrapper; add it to the shell rc when allowed."""
+    context.logger.info(
+        f"  ℹ️ Set CLAUDE_CONFIG_DIR for pi with this shell function:\n    {FUNCTION}"
+    )
+    rc = rc_path(os.environ.get("SHELL", ""), platform.system(), Path.home())
+    if rc is None or context.dry_run:
+        return
+    ask = lambda: input(f"  Add it to {rc}? [y/N] ").strip().lower() == "y"  # noqa: E731
+    if should_add(context.metadata.get("pi_shell_rc"), sys.stdin.isatty(), ask):
+        changed = add_block(rc)
+        context.logger.info(f"  ✅ {'Added to' if changed else 'Already in'} {rc}")
+
+
+def _remove_shell_rc() -> None:
+    """Drop the marked block from every rc file we may have written."""
+    for name in (".zshrc", ".bash_profile", ".bashrc"):
+        remove_block(Path.home() / name)
 
 
 class PiSkillsPlugin(InstallationPlugin):
@@ -286,6 +316,7 @@ class PiSkillsPlugin(InstallationPlugin):
             context.logger.info(
                 f"  ✅ pi skills installed ({len(installed_names)} skills)"
             )
+            _setup_shell_rc(context)
             return PluginResult(
                 success=True,
                 plugin_name=self.name,
@@ -307,6 +338,7 @@ class PiSkillsPlugin(InstallationPlugin):
         """Uninstall only manifest-owned pi skills; everything else stays."""
         try:
             context.logger.info("  🗑️ Uninstalling pi skills...")
+            _remove_shell_rc()
             target_dir = pi_skills_dir()
             manifest_path = target_dir / _MANIFEST_FILENAME
             if not (manifest_path.exists() or manifest_path.is_symlink()):

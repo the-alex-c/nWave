@@ -633,6 +633,7 @@ class NWaveInstaller:
         dry_run: bool = False,
         platform_override: set[str] | None = None,
         dev_mode: bool = False,
+        shell_rc: str | None = None,
     ):
         """Initialize installer.
 
@@ -643,6 +644,7 @@ class NWaveInstaller:
         """
         self.dry_run = dry_run
         self.dev_mode = dev_mode
+        self.shell_rc = shell_rc
         self._platform_override = platform_override
         # The install must have one target truth.  In particular, auto mode
         # cannot install a detected Codex target and later reconstruct a
@@ -1865,6 +1867,7 @@ class NWaveInstaller:
         }
         if self._codex_legacy_witness is not None:
             metadata[_CODEX_LEGACY_WITNESS_KEY] = self._codex_legacy_witness
+        metadata["pi_shell_rc"] = self.shell_rc
 
         # Create installation context with all required utilities
         context = InstallContext(
@@ -2522,6 +2525,12 @@ def main():
         action="store_true",
         help="Install ALL agents and skills (not just public). For local dev only.",
     )
+    parser.add_argument(
+        "--shell-rc",
+        choices=["yes", "no"],
+        default=None,
+        help="pi: add the CLAUDE_CONFIG_DIR wrapper to your shell rc (default: ask on a TTY, else print only)",
+    )
     # Retired (Ruling B): accepted only so that a run passing it is refused with
     # a WHAT/WHY/HOW report. Hidden from --help.
     parser.add_argument(
@@ -2549,6 +2558,7 @@ def main():
         dry_run=args.dry_run,
         platform_override=platform_override,
         dev_mode=args.dev,
+        shell_rc=args.shell_rc,
     )
 
     # Auto-detection must never guess a host.  In particular, defaulting an
