@@ -44,7 +44,7 @@ Pi already exceeds these on skills, commands and `AGENTS.md`. Only the guard is 
 - [x] Uninstall removes exactly the marked rc block. Tests: `tests/pi/test_pi_shell_rc.py`, `tests/pi/test_pi_shell_rc_wiring.py`
 - [ ] `verify --platform pi` checks the rc block and warns when `CLAUDE_CONFIG_DIR` is not set in the current environment (IDE, cron or other-shell launches still fail open)
 - [x] Hook round trip against real `nwave_ai.hooks`: the command `HooksPlugin` installs, run via `sh -c` with pi-shaped payloads in an activated scratch repo; `git stash`, `Write` and `Edit` of `execution-log.json` exit 2, `echo` and `Write ok.txt` exit 0, `git commit` rewrites. Test: `tests/pi/test_pi_guard_round_trip.py` (fails when the repo is inactive)
-- [ ] Tests: stub exit codes through the wrapper are done; still open: a real-pi run in an isolated `PI_CODING_AGENT_DIR` through the installer, not hand-built config
+- [x] Real-pi run in an isolated `PI_CODING_AGENT_DIR`: `PiSkillsPlugin` + `HooksPlugin` install (real `pi install npm:pi-code@1.7.0`, no stubs), then one `pi -p` turn on haiku with `CLAUDE_CONFIG_DIR` set; `git stash` and a `write` to `execution-log.json` are blocked, `touch ok.txt` runs. Test: `tests/pi/test_pi_guard_real_pi.py`, opt-in with `NWAVE_PI_E2E=1` (network, pi login, LLM). Fails with `CLAUDE_CONFIG_DIR` unset. Plugin level, not the `install_nwave.py` CLI
 - [ ] Optional hygiene: inactive-repo behaviour; orphaned child after a hook timeout
 
 ## Rung 3: Codex (roles, delegation, typed reply)
