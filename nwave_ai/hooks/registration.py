@@ -62,6 +62,9 @@ CODEX_MATCHER = "^exec_command$|^Bash$"
 CURSOR_MATCHER = "Shell|Write|Edit|Delete"
 COPILOT_MATCHER = ".*"
 PI_MATCHER = "Bash|Write|Edit"
+#: pi-code allows the call on exit 1 or a missing script; only exit 2 blocks.
+#: This maps every non-zero exit (crash included) to exit 2, so the guard fails closed.
+PI_FAIL_CLOSED = "; rc=$?; [ $rc -eq 0 ] || exit 2"
 
 #: Hook file of each host, relative to that host's configuration directory.
 HOOK_FILE: dict[str, str] = {
@@ -71,6 +74,9 @@ HOOK_FILE: dict[str, str] = {
     "copilot": "hooks/nwave-hooks.json",
     "pi": "settings.json",
 }
+
+#: Hosts whose hook file is the user's own settings: emptied of our entries, never deleted.
+USER_OWNED_HOOK_FILE: frozenset[str] = frozenset({"claude", "pi"})
 
 
 def interpreter_for_shell(path: str, *, windows: bool) -> str:
@@ -148,14 +154,13 @@ def entries(host: str, interpreter: str) -> tuple[tuple[str, dict[str, Any]], ..
         }
         return (("preToolUse", group),)
     if host == "pi":
-        # pi-code allows the call on exit 1 or a missing script; only exit 2 blocks.
         command = hook_command(interpreter, "PreToolUse", host)
         group = {
             "matcher": PI_MATCHER,
             "hooks": [
                 {
                     "type": "command",
-                    "command": f"{command}; rc=$?; [ $rc -eq 0 ] || exit 2",
+                    "command": command + PI_FAIL_CLOSED,
                     "timeout": 30,
                 }
             ],

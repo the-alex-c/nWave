@@ -218,6 +218,7 @@ try:
     from scripts.install.plugins.opencode_agents_plugin import OpenCodeAgentsPlugin
     from scripts.install.plugins.opencode_commands_plugin import OpenCodeCommandsPlugin
     from scripts.install.plugins.opencode_skills_plugin import OpenCodeSkillsPlugin
+    from scripts.install.plugins.pi_guard_plugin import PiGuardPlugin
     from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
     from scripts.install.plugins.registry import PluginRegistry
     from scripts.install.plugins.skills_plugin import SkillsPlugin
@@ -226,6 +227,7 @@ try:
     from scripts.install.preflight_checker import PreflightChecker
     from scripts.shared.agent_catalog import is_public_agent, load_public_agents
     from scripts.shared.install_paths import agents_home, codex_config_dir, env_or_none
+    from scripts.shared.pi_options import PiOptions
     from scripts.shared.version import resolve_product_version
 except ImportError:
     # Safety-net fallback. With the sys.path bootstrap above the package
@@ -275,12 +277,14 @@ except ImportError:
     from plugins.opencode_agents_plugin import OpenCodeAgentsPlugin
     from plugins.opencode_commands_plugin import OpenCodeCommandsPlugin
     from plugins.opencode_skills_plugin import OpenCodeSkillsPlugin
+    from plugins.pi_guard_plugin import PiGuardPlugin
     from plugins.pi_skills_plugin import PiSkillsPlugin
     from plugins.registry import PluginRegistry
     from plugins.skills_plugin import SkillsPlugin
     from plugins.templates_plugin import TemplatesPlugin
     from plugins.utilities_plugin import UtilitiesPlugin
     from preflight_checker import PreflightChecker
+    from shared.pi_options import PiOptions
 
     import scripts.shared.install_paths as _install_paths
     from scripts.shared.agent_catalog import is_public_agent, load_public_agents
@@ -1619,6 +1623,7 @@ class NWaveInstaller:
         if target_platforms and "devin" in target_platforms:
             registry.register(DevinSkillsPlugin())
         if target_platforms and "pi" in target_platforms:
+            registry.register(PiGuardPlugin())
             registry.register(PiSkillsPlugin())
         registry.register(NwdesPlugin())
         if self.dev_mode and not self.dry_run:
@@ -1869,8 +1874,7 @@ class NWaveInstaller:
         }
         if self._codex_legacy_witness is not None:
             metadata[_CODEX_LEGACY_WITNESS_KEY] = self._codex_legacy_witness
-        metadata["pi_shell_rc"] = self.shell_rc
-        metadata["pi_level"] = self.pi_level
+        metadata.update(PiOptions(self.pi_level, self.shell_rc).to_metadata())
 
         # Create installation context with all required utilities
         context = InstallContext(
@@ -1977,7 +1981,7 @@ class NWaveInstaller:
             dry_run=self.dry_run,
             dev_mode=self.dev_mode,
             target_platforms=target_platforms,
-            metadata={"pi_level": self.pi_level},
+            metadata=PiOptions(level=self.pi_level).to_metadata(),
         )
         plugin_results = plugin_registry.verify_all(plugin_context)
         plugin_failures = {

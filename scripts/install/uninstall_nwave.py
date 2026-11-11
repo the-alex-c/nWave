@@ -1607,7 +1607,11 @@ class NWaveUninstaller:
             )
             return
 
-        from nwave_ai.hooks.registration import HOOK_FILE, without_registrations
+        from nwave_ai.hooks.registration import (
+            HOOK_FILE,
+            USER_OWNED_HOOK_FILE,
+            without_registrations,
+        )
         from scripts.shared.install_paths import (
             codex_config_dir,
             omp_extensions_dir,
@@ -1631,7 +1635,7 @@ class NWaveUninstaller:
                 after = without_registrations(before, host)
                 if after == before:
                     continue
-                if host not in ("claude", "pi") and _holds_no_entries(after):
+                if host not in USER_OWNED_HOOK_FILE and _holds_no_entries(after):
                     path.unlink()
                 else:
                     path.write_text(
@@ -1704,9 +1708,11 @@ class NWaveUninstaller:
 
         try:
             from scripts.install.plugins.base import InstallContext
+            from scripts.install.plugins.pi_guard_plugin import PiGuardPlugin
             from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
         except ImportError:
             from plugins.base import InstallContext
+            from plugins.pi_guard_plugin import PiGuardPlugin
             from plugins.pi_skills_plugin import PiSkillsPlugin
 
         context = InstallContext(
@@ -1715,7 +1721,8 @@ class NWaveUninstaller:
             templates_dir=self.claude_config_dir / "templates",
             logger=self.logger,
         )
-        result = PiSkillsPlugin().uninstall(context)
+        results = [PiGuardPlugin().uninstall(context), PiSkillsPlugin().uninstall(context)]
+        result = next((r for r in results if not r.success), results[-1])
         if result.success:
             self.logger.info("  🗑️ Removed pi skills")
         else:

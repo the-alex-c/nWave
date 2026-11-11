@@ -28,7 +28,7 @@ from nwave_ai.upgrade_shell import (
     cursor_config_dir,
     real_port,
 )
-from scripts.shared import pi_code_package
+from scripts.shared.pi_options import PiOptions
 from scripts.install.plugins.base import (
     InstallationPlugin,
     InstallContext,
@@ -48,6 +48,13 @@ _PLATFORM_HOST = {
     "copilot": "copilot",
     "pi": "pi",
 }
+
+
+def _hooks_wanted(host: str, metadata: dict, *, verifying: bool = False) -> bool:
+    """Kept hooks are wanted unless pi's install level turns the guard off."""
+    return host != "pi" or PiOptions.from_metadata(metadata).guard_wanted(
+        verifying=verifying
+    )
 
 
 class HooksPlugin(InstallationPlugin):
@@ -108,12 +115,12 @@ class HooksPlugin(InstallationPlugin):
                 )
                 if not isinstance(document, dict):
                     raise ValueError("top level is not a JSON object")
-                if host == "pi" and pi_code_package.level(context.metadata) < 2:
-                    if before is None:
-                        continue
-                    wanted = without_registrations(document, host)
-                else:
+                if _hooks_wanted(host, context.metadata):
                     wanted = merge(document, host, interpreter)
+                elif before is None:
+                    continue
+                else:
+                    wanted = without_registrations(document, host)
                 after = (json.dumps(wanted, indent=2) + "\n").encode("utf-8")
                 if context.dry_run:
                     continue
@@ -156,7 +163,7 @@ class HooksPlugin(InstallationPlugin):
         interpreter = self.interpreter
         for host, path in self._targets(context):
             try:
-                lowered = host == "pi" and pi_code_package.verify_level(context.metadata) < 2
+                lowered = not _hooks_wanted(host, context.metadata, verifying=True)
                 if lowered and not path.is_file():
                     continue
                 if not path.is_file():

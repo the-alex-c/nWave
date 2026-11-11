@@ -1,7 +1,7 @@
 import pytest
 
 from scripts.install.install_nwave import NWaveInstaller
-from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
+from tests.pi.conftest import PiBoth as PiSkillsPlugin
 from scripts.shared.pi_shell_rc import BEGIN, FUNCTION
 
 

@@ -19,27 +19,7 @@ FILTER = ["extensions/hooks/index.ts"]
 MARKER = ".nwave-pi-code.json"
 _NAME = re.compile(r"^npm:pi-code(@.+)?$")
 
-which = shutil.which
-
-MAX_LEVEL = 2
-
-
-def level(metadata: dict[str, Any]) -> int:
-    """Install rung: 1 = skills, 2 = skills + guard (default: highest)."""
-    return int(metadata.get("pi_level") or MAX_LEVEL)
-
-
-def verify_level(metadata: dict[str, Any]) -> int:
-    """Level to verify: explicit, else the one recorded in the skills manifest, else highest."""
-    from scripts.shared.install_paths import pi_skills_dir
-
-    if metadata.get("pi_level"):
-        return level(metadata)
-    try:
-        recorded = json.loads((pi_skills_dir() / ".nwave-manifest.json").read_text(encoding="utf-8"))["level"]
-    except (OSError, ValueError, KeyError, TypeError):
-        return MAX_LEVEL
-    return recorded if recorded in (1, MAX_LEVEL) else MAX_LEVEL
+_which = shutil.which
 
 
 def _run(args: list[str]) -> None:
@@ -70,24 +50,17 @@ def _marker(pi_dir: Path) -> Path:
     return pi_dir / MARKER
 
 
-def ensure(pi_dir: Path, log) -> None:
-    """Install pinned, filtered pi-code unless the user already has one."""
-    settings = pi_dir / "settings.json"
-    entry = _find(_load(settings))
-    owned = _marker(pi_dir).is_file()
-    if entry is not None and not owned:
-        if not _canonical(entry):
-            log.info(f"  ⚠️ pi-code already installed, left as is: {_source(entry)}")
-        return
-    if entry is not None and _canonical(entry):
-        return
-    if which("pi") is None:
-        log.info(f"  ⚠️ pi not on PATH: run `pi install {SOURCE}` and filter it to {FILTER}")
-        return
-    if entry is not None:
-        remove(pi_dir, log)
-    _run(["install", SOURCE])
-    _marker(pi_dir).write_text(json.dumps({"source": SOURCE}) + "\n", encoding="utf-8")
+def _plan(entry: Any, owned: bool, pi_on_path: bool) -> str:
+    """Pure decision: keep | hint | replace | install."""
+    if entry is not None and (not owned or _canonical(entry)):
+        return "keep"
+    if not pi_on_path:
+        return "hint"
+    return "install" if entry is None else "replace"
+
+
+def _pin(settings: Path) -> None:
+    """Rewrite the installed entry to the pinned, filtered form."""
     document = _load(settings)
     document["packages"] = [
         {"source": SOURCE, "extensions": FILTER} if _source(e) == SOURCE else e
@@ -96,13 +69,40 @@ def ensure(pi_dir: Path, log) -> None:
     settings.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
 
 
+def ensure(pi_dir: Path, log) -> None:
+    """Install pinned, filtered pi-code unless the user already has one."""
+    settings = pi_dir / "settings.json"
+    entry = _find(_load(settings))
+    owned = _marker(pi_dir).is_file()
+    action = _plan(entry, owned, _which("pi") is not None)
+    if action == "keep":
+        if entry is not None and not owned and not _canonical(entry):
+            log.info(f"  ⚠️ pi-code already installed, left as is: {_source(entry)}")
+        return
+    if action == "hint":
+        log.info(f"  ⚠️ pi not on PATH: run `pi install {SOURCE}` and filter it to {FILTER}")
+        return
+    if action == "replace":
+        remove(pi_dir, log)
+    _run(["install", SOURCE])
+    # Marker before the settings rewrite: a crash between them leaves an owned,
+    # non-canonical entry, which the next ensure() replaces.
+    pi_dir.mkdir(parents=True, exist_ok=True)
+    _marker(pi_dir).write_text(json.dumps({"source": SOURCE}) + "\n", encoding="utf-8")
+    _pin(settings)
+
+
 def remove(pi_dir: Path, log) -> None:
     """Remove pi-code only when nWave installed it."""
     marker = _marker(pi_dir)
     if not marker.is_file():
         return
-    source = json.loads(marker.read_text(encoding="utf-8"))["source"]
-    if which("pi") is None:
+    try:
+        source = json.loads(marker.read_text(encoding="utf-8"))["source"]
+    except (ValueError, KeyError, TypeError):
+        log.info(f"  ⚠️ unreadable {marker}: left as is")
+        return
+    if _which("pi") is None:
         log.info(f"  ⚠️ pi not on PATH: run `pi remove {source}` yourself")
         return
     _run(["remove", source])

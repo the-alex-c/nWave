@@ -4,7 +4,7 @@ import sys
 
 from nwave_ai.hooks.registration import entries, merge, without_registrations
 from scripts.install.plugins.nwave_hooks_plugin import HooksPlugin
-from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
+from tests.pi.conftest import PiBoth as PiSkillsPlugin
 from scripts.shared import pi_code_package as pcp
 
 

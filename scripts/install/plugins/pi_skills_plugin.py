@@ -15,10 +15,7 @@ untouched by construction.
 from __future__ import annotations
 
 import json
-import os
-import platform
 import shutil
-import sys
 from pathlib import Path
 from shutil import which as _which
 
@@ -38,19 +35,12 @@ from scripts.shared.skill_distribution import (
     enumerate_skills,
     filter_public_skills,
 )
-from scripts.shared import pi_code_package
-from scripts.shared.pi_shell_rc import (
-    FUNCTION,
-    add_block,
-    has_block,
-    rc_path,
-    remove_block,
-    should_add,
-)
+from scripts.shared import pi_options
+from scripts.shared.pi_options import PiOptions
 from scripts.shared.skill_path_rewrite import rewrite_host_paths
 
 
-_MANIFEST_FILENAME = ".nwave-manifest.json"
+_MANIFEST_FILENAME = pi_options.MANIFEST_FILENAME
 
 _FOREIGN_COLLISION = "foreign or untracked pi skill collision"
 
@@ -66,14 +56,6 @@ def _find_skills_source(context: InstallContext) -> Path | None:
         return project_skills
 
     return None
-
-
-def _read_manifest(target_dir: Path) -> dict | None:
-    """Read the ownership manifest, or None when absent."""
-    manifest_path = target_dir / _MANIFEST_FILENAME
-    if not manifest_path.exists():
-        return None
-    return json.loads(manifest_path.read_text(encoding="utf-8"))
 
 
 def _read_owned_manifest_strict(target_dir: Path) -> set[str]:
@@ -98,7 +80,7 @@ def _read_owned_manifest_strict(target_dir: Path) -> set[str]:
     safe = (
         isinstance(document, dict)
         and set(document) - {"level"} == {"installed_skills", "version"}
-        and document.get("level", 2) in (1, 2)
+        and document.get("level", pi_options.MAX_LEVEL) in pi_options.LEVELS
         and document.get("version") == "1.0"
         and isinstance(names, list)
         and all(_is_plain_skill_name(name) for name in names)
@@ -141,35 +123,74 @@ def _safe_owned_skill_dir(target_dir: Path, name: str) -> Path:
     return skill_dir
 
 
-def _setup_shell_rc(context: InstallContext) -> None:
-    """Print the pi() wrapper; add it to the shell rc when allowed."""
-    context.logger.info(
-        f"  ℹ️ Set CLAUDE_CONFIG_DIR for pi with this shell function:\n    {FUNCTION}"
+def _public_entries(context: InstallContext, skills_source: Path) -> list:
+    """Skills to install: every enumerated skill passing the public filter."""
+    public_agents = (
+        set() if context.dev_mode else load_public_agents(context.project_root / "nWave")
     )
-    rc = rc_path(os.environ.get("SHELL", ""), platform.system(), Path.home())
-    if rc is None or context.dry_run:
-        return
-    ask = lambda: input(f"  Add it to {rc}? [y/N] ").strip().lower() == "y"  # noqa: E731
-    if should_add(context.metadata.get("pi_shell_rc"), sys.stdin.isatty(), ask):
-        changed = add_block(rc)
-        context.logger.info(f"  ✅ {'Added to' if changed else 'Already in'} {rc}")
+    agents_dir = context.project_root / "nWave" / "agents"
+    ownership_map = build_ownership_map(agents_dir) if agents_dir.exists() else {}
+    entries = enumerate_skills(skills_source)
+    command_skills = set() if context.dev_mode else detect_command_skills(skills_source)
+    private_skills = (
+        set() if context.dev_mode else load_private_skills(context.project_root / "nWave")
+    )
+    return filter_public_skills(
+        entries, public_agents, ownership_map, command_skills, private_skills
+    )
 
 
-def _shell_rc_warnings() -> list[str]:
-    """Non-fatal: --shell-rc no is valid, but the guard fails open without CLAUDE_CONFIG_DIR."""
-    warnings = []
-    rc = rc_path(os.environ.get("SHELL", ""), platform.system(), Path.home())
-    if rc is not None and not has_block(rc):
-        warnings.append(f"pi() wrapper block not in {rc}; the guard fails open unless CLAUDE_CONFIG_DIR is set another way")
-    if not os.environ.get("CLAUDE_CONFIG_DIR"):
-        warnings.append("CLAUDE_CONFIG_DIR is not set in this environment; pi started from here (IDE, cron, other shell) runs without the guard")
-    return warnings
+def _owned_before_install(target_dir: Path, desired_names: set[str]) -> set[str]:
+    """Names the previous install owns; refuses unsafe dirs and foreign nw-* dirs."""
+    if not (target_dir.exists() or target_dir.is_symlink()):
+        return set()
+    previous_owned = _read_owned_manifest_strict(target_dir)
+    if target_dir.is_symlink() or not target_dir.is_dir():
+        raise ValueError(f"unsafe pi skills directory: {target_dir}")
+    for existing in sorted(target_dir.glob("nw-*")):
+        if existing.name not in desired_names and existing.name not in previous_owned:
+            raise ValueError(f"{_FOREIGN_COLLISION}: {existing}")
+    return previous_owned
 
 
-def _remove_shell_rc() -> None:
-    """Drop the marked block from every rc file we may have written."""
-    for name in (".zshrc", ".bash_profile", ".bashrc"):
-        remove_block(Path.home() / name)
+def _stage(entries: list, staging_root: Path) -> None:
+    """Copy and path-rewrite every skill under staging_root, outside the discovery root."""
+    for entry in entries:
+        staged = staging_root / entry.name
+        if entry.source_path.is_dir():
+            shutil.copytree(entry.source_path, staged, symlinks=False)
+        else:
+            staged.mkdir(parents=True)
+            shutil.copy2(entry.source_path, staged / "SKILL.md")
+        target_file = staged / "SKILL.md"
+        content = target_file.read_text(encoding="utf-8")
+        rewritten = rewrite_host_paths(content, "pi")
+        if rewritten != content:
+            target_file.write_text(rewritten, encoding="utf-8")
+
+
+def _swap(
+    entries: list,
+    staging_root: Path,
+    target_dir: Path,
+    previous_owned: set[str],
+    stale_names: set[str],
+) -> tuple[list[str], list[Path]]:
+    """Replace owned desired names with staged copies, then prune stale owned names."""
+    installed_names: list[str] = []
+    installed_files: list[Path] = []
+    for entry in entries:
+        skill_dir = _safe_owned_skill_dir(target_dir, entry.name)
+        if skill_dir.exists():
+            if entry.name not in previous_owned:
+                raise ValueError(f"{_FOREIGN_COLLISION}: {skill_dir}")
+            shutil.rmtree(skill_dir)
+        (staging_root / entry.name).rename(skill_dir)
+        installed_names.append(entry.name)
+        installed_files.append(skill_dir / "SKILL.md")
+    for name in sorted(stale_names):
+        shutil.rmtree(_safe_owned_skill_dir(target_dir, name))
+    return installed_names, installed_files
 
 
 class PiSkillsPlugin(InstallationPlugin):
@@ -229,61 +250,16 @@ class PiSkillsPlugin(InstallationPlugin):
                     message="No skills to install (source directory not found)",
                 )
 
-            public_agents = (
-                set()
-                if context.dev_mode
-                else load_public_agents(context.project_root / "nWave")
-            )
-            agents_dir = context.project_root / "nWave" / "agents"
-            ownership_map = (
-                build_ownership_map(agents_dir) if agents_dir.exists() else {}
-            )
-            entries = enumerate_skills(skills_source)
-            command_skills = (
-                set() if context.dev_mode else detect_command_skills(skills_source)
-            )
-            private_skills = (
-                set()
-                if context.dev_mode
-                else load_private_skills(context.project_root / "nWave")
-            )
-            entries = filter_public_skills(
-                entries,
-                public_agents,
-                ownership_map,
-                command_skills,
-                private_skills,
-            )
-
+            entries = _public_entries(context, skills_source)
             desired_names = {entry.name for entry in entries}
             target_dir = pi_skills_dir()
-
-            previous_owned = (
-                _read_owned_manifest_strict(target_dir)
-                if (target_dir.exists() or target_dir.is_symlink())
-                else set()
-            )
-
-            # Foreign-collision preflight: an nw-* directory this install
-            # does not own and will not write is refused, never adopted.
-            if target_dir.exists() or target_dir.is_symlink():
-                if target_dir.is_symlink() or not target_dir.is_dir():
-                    raise ValueError(f"unsafe pi skills directory: {target_dir}")
-                for existing in sorted(target_dir.glob("nw-*")):
-                    if (
-                        existing.name in desired_names
-                        or existing.name in previous_owned
-                    ):
-                        continue
-                    raise ValueError(f"{_FOREIGN_COLLISION}: {existing}")
-
-            stale_names = previous_owned - desired_names
+            previous_owned = _owned_before_install(target_dir, desired_names)
             target_dir.mkdir(parents=True, exist_ok=True)
 
             # Stage every replacement outside the discovery root before any
             # target mutation: a copy/rewrite failure leaves the previous
             # install fully intact.
-            staging_root = pi_skills_dir().parent / ".nwave-skills-staging"
+            staging_root = target_dir.parent / ".nwave-skills-staging"
             if staging_root.is_symlink() or (
                 staging_root.exists() and not staging_root.is_dir()
             ):
@@ -291,54 +267,25 @@ class PiSkillsPlugin(InstallationPlugin):
             shutil.rmtree(staging_root, ignore_errors=True)
             staging_root.mkdir(parents=True)
             try:
-                for entry in entries:
-                    staged = staging_root / entry.name
-                    if entry.source_path.is_dir():
-                        shutil.copytree(entry.source_path, staged, symlinks=False)
-                        target_file = staged / "SKILL.md"
-                    else:
-                        staged.mkdir(parents=True)
-                        target_file = staged / "SKILL.md"
-                        shutil.copy2(entry.source_path, target_file)
-
-                    content = target_file.read_text(encoding="utf-8")
-                    rewritten = rewrite_host_paths(content, "pi")
-                    if rewritten != content:
-                        target_file.write_text(rewritten, encoding="utf-8")
-
-                # Swap phase: replace manifest-owned desired names, then
-                # prune stale owned names.
-                installed_names: list[str] = []
-                installed_files: list[Path] = []
-                for entry in entries:
-                    skill_dir = _safe_owned_skill_dir(target_dir, entry.name)
-                    if skill_dir.exists():
-                        if entry.name not in previous_owned:
-                            raise ValueError(f"{_FOREIGN_COLLISION}: {skill_dir}")
-                        shutil.rmtree(skill_dir)
-                    staged = staging_root / entry.name
-                    staged.rename(skill_dir)
-                    installed_names.append(entry.name)
-                    installed_files.append(skill_dir / "SKILL.md")
-
-                for name in sorted(stale_names):
-                    shutil.rmtree(_safe_owned_skill_dir(target_dir, name))
-
-                _write_manifest(target_dir, installed_names, pi_code_package.level(context.metadata))
+                _stage(entries, staging_root)
+                installed_names, installed_files = _swap(
+                    entries,
+                    staging_root,
+                    target_dir,
+                    previous_owned,
+                    previous_owned - desired_names,
+                )
+                _write_manifest(
+                    target_dir,
+                    installed_names,
+                    PiOptions.from_metadata(context.metadata).install_level,
+                )
             finally:
                 shutil.rmtree(staging_root, ignore_errors=True)
 
             context.logger.info(
                 f"  ✅ pi skills installed ({len(installed_names)} skills)"
             )
-            if pi_code_package.level(context.metadata) < 2:
-                if not context.dry_run:
-                    _remove_shell_rc()
-                    pi_code_package.remove(pi_config_dir(), context.logger)
-            else:
-                if not context.dry_run:
-                    pi_code_package.ensure(pi_config_dir(), context.logger)
-                _setup_shell_rc(context)
             return PluginResult(
                 success=True,
                 plugin_name=self.name,
@@ -360,8 +307,6 @@ class PiSkillsPlugin(InstallationPlugin):
         """Uninstall only manifest-owned pi skills; everything else stays."""
         try:
             context.logger.info("  🗑️ Uninstalling pi skills...")
-            _remove_shell_rc()
-            pi_code_package.remove(pi_config_dir(), context.logger)
             target_dir = pi_skills_dir()
             manifest_path = target_dir / _MANIFEST_FILENAME
             if not (manifest_path.exists() or manifest_path.is_symlink()):
@@ -404,23 +349,24 @@ class PiSkillsPlugin(InstallationPlugin):
         try:
             context.logger.info("  🔍 Verifying pi skills...")
             target_dir = pi_skills_dir()
-            manifest = _read_manifest(target_dir)
+            has_manifest = (target_dir / _MANIFEST_FILENAME).exists()
             source = _find_skills_source(context)
-            if manifest is None and source is None:
+            if not has_manifest and source is None:
                 return PluginResult(
                     success=True,
                     plugin_name=self.name,
                     message="No pi skills configured (nothing to verify)",
                 )
-            if manifest is None:
+            if not has_manifest:
                 return PluginResult(
                     success=False,
                     plugin_name=self.name,
                     message="pi skills manifest missing after install",
                     errors=[f"No {_MANIFEST_FILENAME} under {target_dir}"],
                 )
+            names = sorted(_read_owned_manifest_strict(target_dir))
             missing = []
-            for name in manifest.get("installed_skills", []):
+            for name in names:
                 skill_dir = target_dir / str(name)
                 skill_file = skill_dir / "SKILL.md"
                 if skill_dir.is_symlink() or skill_file.is_symlink():
@@ -434,20 +380,7 @@ class PiSkillsPlugin(InstallationPlugin):
                     message=f"pi skills verification failed ({len(missing)} missing)",
                     errors=[f"missing or invalid: {', '.join(missing)}"],
                 )
-            lowered = pi_code_package.verify_level(context.metadata) < 2
-            errors, warnings = (
-                ([], []) if lowered else pi_code_package.check(pi_config_dir())
-            )
-            for warning in warnings + ([] if lowered else _shell_rc_warnings()):
-                context.logger.info(f"  ⚠️ {warning}")
-            if errors:
-                return PluginResult(
-                    success=False,
-                    plugin_name=self.name,
-                    message="pi guard extension verification failed",
-                    errors=errors,
-                )
-            count = len(manifest.get("installed_skills", []))
+            count = len(names)
             context.logger.info(f"  ✅ Verified {count} pi skills")
             return PluginResult(
                 success=True,

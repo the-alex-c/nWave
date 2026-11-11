@@ -47,5 +47,25 @@ def pi_calls(pi_dir, monkeypatch):
         settings.write_text(json.dumps(doc))
 
     monkeypatch.setattr(pcp, "_run", run)
-    monkeypatch.setattr(pcp, "which", lambda name: "/fake/pi")
+    monkeypatch.setattr(pcp, "_which", lambda name: "/fake/pi")
     return calls
+
+
+class PiBoth:
+    """Guard plugin then skills plugin, as the registry orders them."""
+
+    def _each(self, method, ctx):
+        from scripts.install.plugins.pi_guard_plugin import PiGuardPlugin
+        from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
+
+        results = [getattr(p, method)(ctx) for p in (PiGuardPlugin(), PiSkillsPlugin())]
+        return next((r for r in results if not r.success), results[-1])
+
+    def install(self, ctx):
+        return self._each("install", ctx)
+
+    def uninstall(self, ctx):
+        return self._each("uninstall", ctx)
+
+    def verify(self, ctx):
+        return self._each("verify", ctx)

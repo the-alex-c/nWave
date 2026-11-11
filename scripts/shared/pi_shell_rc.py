@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
+from scripts.shared.pi_options import ShellRc
+
 
 BEGIN = "# >>> nwave pi >>>"
 END = "# <<< nwave pi <<<"
@@ -20,6 +22,11 @@ def rc_path(shell: str, system: str, home: Path) -> Path | None:
     if name == "bash":
         return home / (".bash_profile" if system == "Darwin" else ".bashrc")
     return None
+
+
+def all_rc_paths(home: Path) -> tuple[Path, ...]:
+    """Every rc file rc_path may pick, for cleanup."""
+    return tuple(home / name for name in (".zshrc", ".bash_profile", ".bashrc"))
 
 
 def add_block(rc: Path) -> bool:
@@ -54,8 +61,8 @@ def remove_block(rc: Path) -> bool:
     return True
 
 
-def should_add(mode: str | None, is_tty: bool, ask: Callable[[], bool]) -> bool:
+def should_add(mode: ShellRc | None, is_tty: bool, ask: Callable[[], bool]) -> bool:
     """--shell-rc yes|no wins; with no flag, ask on a TTY, else print only."""
-    if mode in ("yes", "no"):
+    if mode is not None:
         return mode == "yes"
     return ask() if is_tty else False

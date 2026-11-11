@@ -70,6 +70,7 @@ try:
     from scripts.install.plugins.codex_skills_plugin import CodexSkillsPlugin
     from scripts.install.plugins.devin_skills_plugin import DevinSkillsPlugin
     from scripts.install.plugins.nwave_hooks_plugin import HooksPlugin
+    from scripts.install.plugins.pi_guard_plugin import PiGuardPlugin
     from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
     from scripts.install.rich_console import RichLogger
 except ImportError:
@@ -85,6 +86,7 @@ except ImportError:
     from plugins.codex_skills_plugin import CodexSkillsPlugin
     from plugins.devin_skills_plugin import DevinSkillsPlugin
     from plugins.nwave_hooks_plugin import HooksPlugin
+    from plugins.pi_guard_plugin import PiGuardPlugin
     from plugins.pi_skills_plugin import PiSkillsPlugin
     from rich_console import RichLogger
 
@@ -140,6 +142,7 @@ def verify_native_platform(
         results.append(DevinSkillsPlugin().verify(ctx))
     elif platform == "pi":
         results.append(PiSkillsPlugin().verify(ctx))
+        results.append(PiGuardPlugin().verify(ctx))
         results.append(HooksPlugin().verify(ctx))
     return results
 

@@ -1,7 +1,7 @@
 import sys
 
 from scripts.install import uninstall_nwave
-from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
+from tests.pi.conftest import PiBoth as PiSkillsPlugin
 
 
 def test_cli_uninstall_removes_default_location_pi_only_install(
