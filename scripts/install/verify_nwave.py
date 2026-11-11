@@ -140,6 +140,7 @@ def verify_native_platform(
         results.append(DevinSkillsPlugin().verify(ctx))
     elif platform == "pi":
         results.append(PiSkillsPlugin().verify(ctx))
+        results.append(HooksPlugin().verify(ctx))
     return results
 
 

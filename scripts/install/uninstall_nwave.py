@@ -459,7 +459,7 @@ class NWaveUninstaller:
         # the native hook/manifest and the host-neutral DES runtime behind.
         from nwave_ai.hooks.registration import HOOK_FILE
         from nwave_ai.platform.locations import NWaveLocations
-        from scripts.shared.install_paths import agents_home
+        from scripts.shared.install_paths import agents_home, pi_config_dir
 
         locations = NWaveLocations.resolve(
             Path.home(), Path.cwd(), None, None, None
@@ -483,6 +483,7 @@ class NWaveUninstaller:
             ("Codex", locations.codex_config_dir / HOOK_FILE["codex"]),
             ("Cursor", _cursor_config_dir() / HOOK_FILE["cursor"]),
             ("Copilot", _copilot_config_dir() / HOOK_FILE["copilot"]),
+            ("pi", pi_config_dir() / HOOK_FILE["pi"]),
         ):
             if _carries_kept_registration(hook_file):
                 installation_found = True
@@ -1607,13 +1608,18 @@ class NWaveUninstaller:
             return
 
         from nwave_ai.hooks.registration import HOOK_FILE, without_registrations
-        from scripts.shared.install_paths import codex_config_dir, omp_extensions_dir
+        from scripts.shared.install_paths import (
+            codex_config_dir,
+            omp_extensions_dir,
+            pi_config_dir,
+        )
 
         targets = (
             ("claude", self.claude_config_dir / HOOK_FILE["claude"]),
             ("codex", codex_config_dir() / HOOK_FILE["codex"]),
             ("cursor", _cursor_config_dir() / HOOK_FILE["cursor"]),
             ("copilot", _copilot_config_dir() / HOOK_FILE["copilot"]),
+            ("pi", pi_config_dir() / HOOK_FILE["pi"]),
         )
         for host, path in targets:
             try:
@@ -1625,7 +1631,7 @@ class NWaveUninstaller:
                 after = without_registrations(before, host)
                 if after == before:
                     continue
-                if host != "claude" and _holds_no_entries(after):
+                if host not in ("claude", "pi") and _holds_no_entries(after):
                     path.unlink()
                 else:
                     path.write_text(

@@ -28,7 +28,11 @@ from scripts.install.plugins.base import (
     InstallContext,
     PluginResult,
 )
-from scripts.shared.install_paths import codex_config_dir, is_durable_interpreter_path
+from scripts.shared.install_paths import (
+    codex_config_dir,
+    is_durable_interpreter_path,
+    pi_config_dir,
+)
 
 
 _PLATFORM_HOST = {
@@ -36,6 +40,7 @@ _PLATFORM_HOST = {
     "codex": "codex",
     "cursor": "cursor",
     "copilot": "copilot",
+    "pi": "pi",
 }
 
 
@@ -67,6 +72,7 @@ class HooksPlugin(InstallationPlugin):
             "codex": codex_dir,
             "cursor": cursor_config_dir(home),
             "copilot": copilot_config_dir(home),
+            "pi": pi_config_dir(),
         }
         return [
             (host, directories[host] / HOOK_FILE[host])

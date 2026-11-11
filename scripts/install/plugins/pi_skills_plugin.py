@@ -38,6 +38,7 @@ from scripts.shared.skill_distribution import (
     enumerate_skills,
     filter_public_skills,
 )
+from scripts.shared import pi_code_package
 from scripts.shared.pi_shell_rc import (
     FUNCTION,
     add_block,
@@ -316,6 +317,8 @@ class PiSkillsPlugin(InstallationPlugin):
             context.logger.info(
                 f"  ✅ pi skills installed ({len(installed_names)} skills)"
             )
+            if not context.dry_run:
+                pi_code_package.ensure(pi_config_dir(), context.logger)
             _setup_shell_rc(context)
             return PluginResult(
                 success=True,
@@ -339,6 +342,7 @@ class PiSkillsPlugin(InstallationPlugin):
         try:
             context.logger.info("  🗑️ Uninstalling pi skills...")
             _remove_shell_rc()
+            pi_code_package.remove(pi_config_dir(), context.logger)
             target_dir = pi_skills_dir()
             manifest_path = target_dir / _MANIFEST_FILENAME
             if not (manifest_path.exists() or manifest_path.is_symlink()):
@@ -410,6 +414,16 @@ class PiSkillsPlugin(InstallationPlugin):
                     plugin_name=self.name,
                     message=f"pi skills verification failed ({len(missing)} missing)",
                     errors=[f"missing or invalid: {', '.join(missing)}"],
+                )
+            errors, warnings = pi_code_package.check(pi_config_dir())
+            for warning in warnings:
+                context.logger.info(f"  ⚠️ {warning}")
+            if errors:
+                return PluginResult(
+                    success=False,
+                    plugin_name=self.name,
+                    message="pi guard extension verification failed",
+                    errors=errors,
                 )
             count = len(manifest.get("installed_skills", []))
             context.logger.info(f"  ✅ Verified {count} pi skills")

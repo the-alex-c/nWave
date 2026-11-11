@@ -55,12 +55,13 @@ HOOK_EVENT_TYPES: frozenset[str] = frozenset(row.event for row in HOOK_EVENTS)
 
 
 #: Hosts that receive kept registrations (fact F419).
-HOSTS: tuple[str, ...] = ("claude", "codex", "cursor", "copilot")
+HOSTS: tuple[str, ...] = ("claude", "codex", "cursor", "copilot", "pi")
 
 #: Matcher of the shell registration on Codex, Cursor and Copilot (fact F419).
 CODEX_MATCHER = "^exec_command$|^Bash$"
 CURSOR_MATCHER = "Shell|Write|Edit|Delete"
 COPILOT_MATCHER = ".*"
+PI_MATCHER = "Bash|Write|Edit"
 
 #: Hook file of each host, relative to that host's configuration directory.
 HOOK_FILE: dict[str, str] = {
@@ -68,6 +69,7 @@ HOOK_FILE: dict[str, str] = {
     "codex": "hooks.json",
     "cursor": "hooks.json",
     "copilot": "hooks/nwave-hooks.json",
+    "pi": "settings.json",
 }
 
 
@@ -145,6 +147,20 @@ def entries(host: str, interpreter: str) -> tuple[tuple[str, dict[str, Any]], ..
             "hooks": [{"type": "command", "bash": command, "timeoutSec": 30}],
         }
         return (("preToolUse", group),)
+    if host == "pi":
+        # pi-code allows the call on exit 1 or a missing script; only exit 2 blocks.
+        command = hook_command(interpreter, "PreToolUse", host)
+        group = {
+            "matcher": PI_MATCHER,
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": f"{command}; rc=$?; [ $rc -eq 0 ] || exit 2",
+                    "timeout": 30,
+                }
+            ],
+        }
+        return (("PreToolUse", group),)
     raise ValueError(f"unknown host {host!r}")
 
 

@@ -1,3 +1,4 @@
+import json
 import logging
 from pathlib import Path
 
@@ -27,3 +28,24 @@ def ctx(tmp_path):
         framework_source=ROOT / "nWave",
         target_platforms={"pi"},
     )
+
+
+@pytest.fixture(autouse=True)
+def pi_calls(pi_dir, monkeypatch):
+    """Stand in for the pi CLI: record `pi install|remove` and edit settings.json."""
+    from scripts.shared import pi_code_package as pcp
+
+    calls = []
+
+    def run(args):
+        calls.append(args)
+        settings = pi_dir / "settings.json"
+        doc = json.loads(settings.read_text()) if settings.is_file() else {}
+        packages = [p for p in doc.get("packages", []) if pcp._source(p) != args[1]]
+        doc["packages"] = packages + ([args[1]] if args[0] == "install" else [])
+        settings.parent.mkdir(parents=True, exist_ok=True)
+        settings.write_text(json.dumps(doc))
+
+    monkeypatch.setattr(pcp, "_run", run)
+    monkeypatch.setattr(pcp, "which", lambda name: "/fake/pi")
+    return calls
