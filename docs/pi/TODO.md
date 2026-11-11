@@ -34,11 +34,11 @@ Branch: `pi-platform-rung-2`
 
 Pi already exceeds these on skills, commands and `AGENTS.md`. Only the guard is missing.
 
-- [ ] New repo `nwave-pi`: pi extension (TypeScript), installed as a pi package
-- [ ] Extension on `tool_call` runs `python -m nwave_ai.hooks PreToolUse --host pi`; maps `bash`/`write`/`edit` to `Bash`/`Write`/`Edit`; translates exit 0/1/2 and `permissionDecision`/`updatedInput` back
+- [ ] Pick the guard extension: use an existing one as is (`pi-code` with the hooks-only filter is probably preferred; `pi-claude-hooks` is the alternative), a modified fork of one, or a new extension. Analyses: [pi-code-analysis.md](research/rung-2/pi-code-analysis.md), [pi-code-falsifiers.md](research/rung-2/pi-code-falsifiers.md)
+- [ ] Extension on `tool_call` runs `python -m nwave_ai.hooks PreToolUse --host pi`; maps `bash`/`write`/`edit` to `Bash`/`Write`/`Edit`; translates exit 0/1/2 and `permissionDecision`/`updatedInput` back (an existing extension may already do this; wrap non-0/2 exits to 2)
 - [ ] Add `pi` to `HOSTS` in `nwave_ai/hooks/registration.py` and `nwave_ai/hooks/__main__.py`
-- [ ] Installer step that installs the `nwave-pi` package
-- [ ] Tests: hook shim round trip; extension loads in real pi
+- [ ] Installer step that installs the chosen extension (or our fork) and writes the hook entries
+- [ ] Tests: hook round trip against real `nwave_ai.hooks`; extension loads in real pi
 
 ## Rung 3: Codex (roles, delegation, typed reply)
 
@@ -47,7 +47,7 @@ Gap doc: [pi-vs-codex-gaps.md](pi-vs-codex-gaps.md). This is the first rung that
 Branch: `pi-platform-rung-3`
 
 - [ ] Named role registry (agent files pi can discover)
-- [ ] `spawn_agent`-style delegation tool in `nwave-pi` (the existing `examples/extensions/subagent` spawns a `pi` subprocess; starting point only)
+- [ ] `spawn_agent`-style delegation tool, in the rung 2 extension (or our fork of it) or in a separate extension; decide at the start of the rung. Starting points: pi's `examples/extensions/subagent` (spawns a `pi` subprocess) and `pi-code`'s own `subagent` tool (dropped by the rung 2 hooks-only filter)
 - [ ] Typed reply equivalent of Codex `--output-schema` so roles can return `role_envelope`
 - [ ] Installer: pi agents plugin; inline skills into role text and give the tool ceiling as a prompt preamble (model on `codex_agents_plugin.py`)
 - [ ] Optional per-role `model`
@@ -62,7 +62,7 @@ Branch: `pi-platform-rung-4`
 - [ ] Emit `/nw-*` commands as pi prompt templates in `~/.pi/agent/prompts/`
 - [ ] Skill preload equivalent of `autoloadSkills`
 - [ ] `skill://` rewrite (`translate_skill_invocations`) has no pi equivalent; read skills by path instead
-- [ ] Rewrite the guard extension for pi's `tool_call` payloads (OMP's parses `apply_patch`/hashline edits; pi's `edit` differs)
+- [ ] Check the rung 2 guard (existing extension as is, or our fork) against pi's `tool_call` payloads; adapt it if needed (OMP's parses `apply_patch`/hashline edits; pi's `edit` differs)
 
 ## Rung 5: Claude Code (full hook set)
 
