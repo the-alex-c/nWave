@@ -77,6 +77,49 @@ at lowest cost.
    failing envelope is detected.
 4. Record the result in this doc. Then pick A or B.
 
+## Spike result (option C, run A)
+
+Run: isolated `PI_CODING_AGENT_DIR` (temp dir, copied `auth.json`, deleted after). Parent and child on
+`anthropic/claude-haiku-4-5`. pi-code 1.7.0 `subagent/index.ts` loaded via `-e` (not the hooks filter).
+Live config untouched. Child cost about $0.004 per run. Logs not kept.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Spawn as isolated `pi` child | PASS | child result has its own turns (`usage.turns` 2), model `claude-haiku-4-5`, `agentSource: user` |
+| Agent discovery from `agents/*.md` | PASS | `subagent(agent="nw-spike")` resolved the file |
+| Tool ceiling (`tools: read`) | PASS (observed) | child asked to run bash replied it had no bash tool; no bash call. Argv `--tools read` per `child.ts` L171, not captured directly |
+| Typed reply | FAIL (not enforced) | prompt asked for bare JSON; child returned a ```json fence. Also returned JSON when asked for one plain sentence. Parser must strip fences; nothing enforces shape |
+| Name shape `subagent_type` | FAIL | tool takes `agent`, not `subagent_type`; needs alias |
+| Parent completes after child | FAIL, 1 of 4 | run 4: child and tool result finished, parent process never emitted `agent_end`; killed by tool timeout. Runs 1-3 completed |
+
+### Parent hang investigation
+
+Not reproduced on demand. Totals:
+
+| Batch | Runs | Hangs |
+|---|---|---|
+| Spike, parent + subagent (original) | 4 | 1 (run 4) |
+| Repro harness, parent + subagent, 120 s cap | 24 | 0 |
+| Control, parent only, no extension, 120 s cap | 10 | 0 |
+
+Hang signature (run 4): child finished and tool result emitted; parent never started its next
+assistant turn; no stderr; no `agent_end`. Killed by an external timeout.
+
+Source: `run.ts` resolves the `subagent` call on child `close` and has no parent-side timeout.
+The stall sits in the parent after the tool result, most likely a stalled model request. Not
+confirmed: whether the provider client (pi-ai) sets a request timeout. Not inspected; the logs
+have no raw HTTP trace.
+
+Conclusion: intermittent, about 1 in 28 subagent runs, outside pi-code's subagent code. Root cause
+open. Mitigation for nWave: wall-clock cap on the delegation call, and timestamped logs to
+confirm the stalled stage.
+
+Not tested: model per role other than default, skill inlining, failing-envelope detection, `nwdes measure` session format.
+
+Root-session stalls (no subagents involved) and the diagnostic runbook: [stall-diagnostic.md](stall-diagnostic.md).
+
+Tooling note: macOS has no `timeout` binary; use a shell-level timeout.
+
 ## Open questions (need a decision or a test)
 
 - Does a prompt-only JSON reply plus a validator meet the typed-reply requirement, or does nWave need
