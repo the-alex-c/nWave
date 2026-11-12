@@ -39,8 +39,9 @@ Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-
    - Spike hang: 1 of 4 runs; 0 of 24 on the repro harness; 0 of 10 on parent-only control. Root stall also happens with no subagents.
    - Captured stall (PID 86189): open provider socket, no children, reply after 520 s at 100k context. Latency, not a hang.
    - Spike context was tiny, so the latency explanation does not fit the spike hang. Unexplained at n=1.
-   - Open: did tokens stream during long calls; does pi-ai set an idle timeout; do reported stalls match the >= 80k cases.
-   - pi-code `run.ts` has no parent-side timeout on the child. The wrapper path inherits that; `Agent` needs a cap regardless of cause.
+   - Update (see stall-diagnostic 5c): pi has `httpIdleTimeoutMs` default 300 s plus agent retry x3. Two captured stalls (362 s, 520 s) both show a cache-miss `cache_warm` at +272 s: main request outstanding >= 270 s at provider. Matches >= 70k context cases.
+   - Open: zero-byte idle or slow stream (capture script now samples bytes); whether pi retried.
+   - pi-code `run.ts` has no parent-side timeout on the child. The wrapper path inherits that; `Agent` needs a cap regardless of cause (**decided: 900 s wall-clock default, per-call override; timeout kills the child tree and returns a typed failure `{outcome:"failed", diagnostic:"timeout 900s"}`, no silent retry**). Basis: n=3 completed stalls of 362-566 s, median reply 2-6 s. Idle/heartbeat kill not adopted: YAGNI until a byte-level capture shows zero-byte stalls.
 6. **Lower-risk.**
    - Skill inlining unchecked.
    - Children run `--no-session`: `nwdes measure` has nothing to read (use `--requests`).

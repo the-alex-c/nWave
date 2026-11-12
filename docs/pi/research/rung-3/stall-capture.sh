@@ -46,11 +46,13 @@ for PID in $PIDS; do
   log "t0:"
   lsof -a -p "$PID" -i -n -P 2>/dev/null | tee -a "$REPORT"
   ps -o %cpu=,cputime=,stat= -p "$PID" | tee -a "$REPORT"
+  nettop -p "$PID" -L 1 -x -J bytes_in,bytes_out 2>/dev/null | tee -a "$REPORT"
   sleep "$SAMPLE"
   log "t+${SAMPLE}s:"
   lsof -a -p "$PID" -i -n -P 2>/dev/null | tee -a "$REPORT"
   ps -o %cpu=,cputime=,stat= -p "$PID" | tee -a "$REPORT"
-  log "(same socket and growing cputime: waiting or streaming. CPU flat at 0: idle on network.)"
+  nettop -p "$PID" -L 1 -x -J bytes_in,bytes_out 2>/dev/null | tee -a "$REPORT"
+  log "(bytes_in grew: streaming. bytes_in flat: zero-byte idle; pi aborts after httpIdleTimeoutMs, default 300 s.)"
 
   section "4. pid $PID: child processes (a running child means a tool is hung; pi-lens *-lsp/server children are long-lived and expected; a bash child running this script is you)"
   CHILDREN=$(ps -axo pid=,ppid= | awk -v p="$PID" '$2==p {print $1}')
@@ -95,6 +97,8 @@ if msgs:
         print("STATE: last entry is toolUse with no result -> a tool is pending")
     elif m.get("role") == "user":
         print("STATE: last entry is user with no reply -> model request pending")
+    elif m.get("role") == "toolResult":
+        print("STATE: last entry is toolResult with no assistant reply -> model request pending")
     else:
         print("STATE: last entry is a completed assistant turn")
 EOF

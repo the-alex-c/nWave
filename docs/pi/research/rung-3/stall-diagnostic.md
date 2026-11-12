@@ -108,6 +108,15 @@ than a silent hang. Not yet shown: whether these calls were still streaming or i
   no higher than at short idle. Expiry raises cost (cache rewrite), not minutes of latency.
 - Slow replies (>= 60 s, 51 of ~6,200) are rare and not clearly tied to idle time. Cause still open.
 
+### 5c. Captures 2026-11-11 21:31 and 21:35 local (same PID 86189, `~/stall-captures/`)
+
+- Open socket, same local port in both (one connection), no tool children. Last entry: `toolResult` 02:29:56Z; reply 02:35:58Z (362 s).
+- The script's STATE line said "completed assistant turn": wrong for a trailing `toolResult`. Fixed.
+- A `cache_warm` usage entry sits at +272 s in both this stall and the 520 s one (warm delay = 90% of the 300 s TTL = 270 s, see `cache-warmer.js`). Both warms show `cacheRead: 0` and a full `cacheWrite` (73k, 100k tokens, $0.18 and $0.06): the provider had not yet written the cache for the main request.
+- Reading: the main request was outstanding >= 270 s before the provider handled it. The warmer is a symptom that also adds cost. Of 6,359 replies only 3 contain a warm; they are the 3 slowest (566, 520, 362 s). Warming may postdate older sessions.
+- pi default `httpIdleTimeoutMs` = 300000 and agent retry = 3 (`docs/settings.md`). 362 s and 520 s exceed one idle window: either bytes trickled or pi timed out and retried. Not determined. No error entry was logged.
+- `stall-capture.sh` now samples `nettop` bytes_in/out twice. Next stall: flat bytes_in = zero-byte idle; growing = slow stream.
+
 ### 6. Ruled out (for the root stall)
 
 - pi-code subagent: root stall also seen without subagents (user report).
