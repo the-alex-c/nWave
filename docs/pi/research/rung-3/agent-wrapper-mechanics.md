@@ -1,6 +1,6 @@
 # Rung 3 research: `Agent` wrapping pi-code `subagent` (gap 2)
 
-Status: source-read only. Nothing executed. Resolves part of gap 2 in [gaps-tmp.md](gaps-tmp.md)
+Status: source-read, then run (see "Run results"). No real model calls. Resolves part of gap 2 in [gaps-tmp.md](gaps-tmp.md)
 and corrects [subagent-delegation-notes.md](subagent-delegation-notes.md) ("Alias option").
 
 ## Question
@@ -52,10 +52,27 @@ running pi. The earlier worry about a docs/version mismatch does not hold.
 The wrapper path is feasible. Hiding is by `prepareLoadout`, not by `exposure` or active set.
 Remaining wrapper risk is the roster text (6) and `max_turns` (8).
 
-## To run (needs a throwaway extension, in an isolated `PI_CODING_AGENT_DIR`)
+## Run results (pi 1.4.0, `--no-extensions -e pi-code/extensions/subagent/index.ts -e probe.ts`, `--offline --no-session`)
 
 1. `Agent` registered with `prepareLoadout` hiding `subagent`. Check `--mode json` tool list
    shows `Agent`, not `subagent`.
 2. Print the system prompt (`ctx.getSystemPrompt()` or event) and confirm the pi-code roster text.
 3. Log `tool_call` names seen by a handler during one `Agent` call (expect `Agent`, then `subagent`).
 4. One model call (haiku) through `Agent` end to end, as in the first spike.
+
+Probe: `Agent` tool with `prepareLoadout: () => ({hiddenDeclarations:['subagent']})`, `execute` calling
+`ctx.executeTool('subagent', {agent: subagent_type, task: prompt}, {signal})`. Model calls replaced by
+pi-ai `fauxProvider` (registered via legacy `pi.registerProvider` form with `streamSimple`).
+
+1. **Hiding works across extensions.** Provider payload `tools`: `Read, Bash, Edit, Write, Agent` (+ deferred placeholder). No `subagent`.
+2. **Roster leak confirmed, fix works.** Without a handler, payload has `<subagents>Delegate isolated tasks with the subagent tool ... Available agents: ...`.
+   A `before_agent_start` handler in the later-loaded extension doing `delete event.systemPromptOptions.sections.subagents` removes it
+   (pi-code's handler runs first, ours second; order = load order). Better: `addPromptSection(event,'subagents', <Agent roster>)` same key overrides.
+3. **Nested call works and hooks see both.** Log order: `call Agent`, `call subagent {agent,task}`, `result subagent`, `result Agent`.
+   The rung 2 guard would see `subagent`, so it must allow it when nested (or key on `parentToolCallId`).
+4. **New: failure is not `isError`.** Unknown agent returned `isError:false` with text `Agent failed: Unknown agent ...`.
+   The wrapper must detect failure itself (check `details.results[].exitCode`/text), not trust `isError`.
+
+## Verdict (updated)
+
+Wrapper path verified on mechanics. Remaining: `max_turns` mapping, typed reply (gap 4), timeout cap (gap 5).

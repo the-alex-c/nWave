@@ -1,4 +1,4 @@
-# Rung 3 gaps (temporary)
+# Rung 3 (`Agent` subagent delegation on pi): open gaps, ranked by risk (temporary)
 
 Temporary working list. Delete or fold into `subagent-delegation.md` when settled.
 Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-notes.md](subagent-delegation-notes.md), [stall-diagnostic.md](stall-diagnostic.md).
@@ -9,19 +9,15 @@ Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-
    - Wrapper: `Agent` calls pi-code `subagent` via `ctx.executeTool`; widen the rung 2 filter; hide `subagent` from the model.
    - Own spawn: nWave registers `Agent` and runs `pi --mode json -p --no-session` itself.
    - The spike tested `subagent`, never `Agent`. Its evidence (discovery, ceiling) holds for the wrapper path. Own spawn is untested.
-2. **Wrapper mechanics unverified.**
-   - API was read from Cellar `0.85.1` docs; `pi --version` is `1.4.0`.
-   - Untested: `ctx.executeTool` exists; a second extension can hide or re-register a tool owned by pi-code; `max_turns` maps (pi-code has `maxTurns` in agent frontmatter only).
-   - Checkable with no model calls. Decides item 1.
-   - **Source-read result (pi 1.4.0; the Cellar dir name `0.85.1` is misleading, `package.json` says 1.4.0, so the docs match):**
-     - `ctx.executeTool(name, args, {signal, onUpdate})` exists in `ExtensionToolContext`; `execute()` receives it as `ctx`. It never rejects: failures return `isError: true`.
-     - Nested calls pass through `tool_call`/`tool_result` handlers, so the rung 2 guard sees the nested `subagent` call (name `subagent`, not `Agent`). Not yet run.
-     - Notes file is wrong on hiding: `exposure: "hidden"` is *unreachable* (breaks the wrapper), and `direct` is callable only while active (so `setActiveTools()` without `subagent` also breaks it).
-     - Right mechanism: `Agent` defines `prepareLoadout()` returning `hiddenDeclarations: ["subagent"]`. The tool stays active and callable; the model is not shown it.
-     - New gap: pi-code's `before_agent_start` handler injects a system-prompt section "Delegate isolated tasks with the subagent tool ({agent, task}). Available agents: ...". The model is told about a tool it cannot see. Needs rewriting or suppressing; handler order between the two extensions is unverified.
-     - `max_turns`: no call param in pi-code, still unmapped.
-     - pi-code refuses nested runs via `PI_CODE_SUBAGENT` env in the child (good: no grandchildren).
-     - Still unrun: that `prepareLoadout` hiding actually works with another extension's tool.
+2. **Wrapper mechanics: verified (pi 1.4.0, no model calls; details in [agent-wrapper-mechanics.md](agent-wrapper-mechanics.md)).**
+   - `ctx.executeTool` exists and works; the Cellar dir name `0.85.1` is misleading, `package.json` says 1.4.0, docs match.
+   - Hiding: `exposure: "hidden"` and `setActiveTools()` break the wrapper. `prepareLoadout()` returning `hiddenDeclarations: ["subagent"]` works across extensions: payload tools are `Read, Bash, Edit, Write, Agent`.
+   - Roster leak: pi-code's `before_agent_start` injects "Delegate isolated tasks with the subagent tool...". A later-loaded handler doing `delete event.systemPromptOptions.sections.subagents` removes it (order = load order).
+   - Nested hooks: `call Agent`, `call subagent`, `result subagent`, `result Agent`. Rung 2 guard sees `subagent`; it must allow it when nested.
+   - New: unknown agent returns `isError: false` with text "Agent failed: ...". Wrapper must detect failure itself.
+   - pi-code refuses grandchildren via `PI_CODE_SUBAGENT` env in the child (source-read, not run).
+   - Still open: `max_turns` has no call param in pi-code (frontmatter `maxTurns` only), unmapped.
+
 3. **Hook visibility.** Already noted in `subagent-delegation-notes.md` (Open point 4, Risks). Not re-analysed here.
 4. **Typed reply has no design.** Spike: child wraps JSON in a fence and ignores format instructions.
    - Options: fence-strip + validate + retry, or a submit tool the child must call.
@@ -41,4 +37,6 @@ Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-
 
 ## Next step
 
-Item 2: throwaway extension registering `Agent` that calls `subagent` via `ctx.executeTool`. Run on pi 1.4.0 in an isolated `PI_CODING_AGENT_DIR`. No model calls. Outcome picks wrapper or own spawn.
+Item 2 DONE: see [agent-wrapper-mechanics.md](agent-wrapper-mechanics.md) "Run results"; wrapper path verified (hiding, roster override, nested hooks work; nested failure is `isError:false`). Decide item 1 = wrapper unless own-spawn needs justify.
+
+(old plan) Item 2: throwaway extension registering `Agent` that calls `subagent` via `ctx.executeTool`. Run on pi 1.4.0 in an isolated `PI_CODING_AGENT_DIR`. No model calls. Outcome picks wrapper or own spawn.

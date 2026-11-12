@@ -42,7 +42,7 @@ Spike config options from the previous message still stand. The tool under test 
 
 ## Alias option: `Agent` wraps pi-code `subagent`
 
-Status: feasible on paper, unverified on pi 1.4.0.
+Status: feasible, unrun. Source-read on pi 1.4.0 (the Cellar `0.85.1` path holds 1.4.0): see [agent-wrapper-mechanics.md](agent-wrapper-mechanics.md).
 
 Mechanism (pi extension API, per docs under Cellar 0.85.1):
 - Register `Agent` with `exposure: "direct"`.
@@ -51,9 +51,10 @@ Mechanism (pi extension API, per docs under Cellar 0.85.1):
 
 Required:
 - Widen the rung 2 filter to load `extensions/subagent/index.ts`.
-- Hide pi-code's `subagent` from the model, so only `Agent` is declared. Options:
-  - `pi.setActiveTools()` excluding `subagent`.
-  - Re-register `subagent` with `exposure: "hidden"`. Unverified: name owned by another extension may throw.
+- Hide pi-code's `subagent` from the model, so only `Agent` is declared. Use `prepareLoadout()` on `Agent` returning `hiddenDeclarations: ["subagent"]` (stays active and callable).
+  - Does NOT work: `pi.setActiveTools()` excluding `subagent` (`direct` tools are callable only while active).
+  - Does NOT work: re-registering `subagent` with `exposure: "hidden"` (`hidden` is unreachable, so `executeTool` fails).
+- pi-code's `before_agent_start` handler injects a system-prompt section naming `subagent`; replace or suppress it.
 
 Param mapping:
 - `subagent_type` -> `agent`; `prompt` -> `task`.
@@ -62,7 +63,7 @@ Param mapping:
 
 Risks:
 - The nWave `pre-task` hook matches `Agent` (`registration.py` L40). Nested `subagent` calls reach `tool_call` handlers too; confirm which name the guard sees.
-- Docs read are for Cellar `0.85.1`. Global `pi --version` is `1.4.0`. Verify the API on 1.4.0 before code.
+- Version check resolved: the Cellar `0.85.1` path contains pi 1.4.0, so the docs read match.
 
 ## Hook visibility (gap 3), source-read
 
