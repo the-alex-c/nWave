@@ -2,6 +2,7 @@
 /pi/
 /pi-claude-hooks/
 /pi-code/
+/codex/
 
 # Python
 __pycache__/
