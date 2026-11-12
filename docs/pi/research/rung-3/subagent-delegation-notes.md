@@ -63,3 +63,31 @@ Param mapping:
 Risks:
 - The nWave `pre-task` hook matches `Agent` (`registration.py` L40). Nested `subagent` calls reach `tool_call` handlers too; confirm which name the guard sees.
 - Docs read are for Cellar `0.85.1`. Global `pi --version` is `1.4.0`. Verify the API on 1.4.0 before code.
+
+## Hook visibility (gap 3), source-read
+
+Nothing executed. Sources: pi-code 1.7.0 `hooks/index.ts`, `internal/claude-tool-names.ts`; nWave `nwave_ai/hooks/{__main__,registration,lifecycle,host_scan}.py`; live `settings.json`.
+
+Findings:
+- **The pi installer registers `Bash|Write|Edit` only.** `Agent` is not matched, so the `pre-task` hook never fires on pi. Matches the Codex floor (bash guard only).
+- **`pre-task` only logs.** `handle_pre_tool_use` writes `subagent_type` to the hook log and exits 0. No block, no mutation. Missing it costs a log line, nothing else.
+- **pi-code reports its `subagent` tool as `tool_name: "Agent"`** (`claude-tool-names.ts`), but `tool_input` stays pi-shaped (`{agent, task}`), so `subagent_type` is absent. An nWave-owned `Agent` tool would carry `subagent_type` (input passes through unchanged).
+- **Wrapper path:** if `Agent` wraps `subagent` via `executeTool`, two PreToolUse events named `Agent` are likely (outer and nested). Unverified; only matters if a matcher is added.
+- **Children run the guard.** The child is a full `pi` with `PI_CODE_SUBAGENT=1`, which skips only Stop, Session* and UserPromptSubmit. `Bash|Write|Edit` hooks fire in the child (rung 2 analysis, not yet run against a child).
+- **Real gap: no child identity on tool payloads.** `commonPayload` has no `agent_type` or `agent_id`. `agent_type` appears only on SubagentStart/Stop, and only if hooks are registered for them.
+  - `resolve_subagent_agent_type` needs `agent_type` or a subagent transcript sidecar. Children run `--no-session`, so neither exists.
+  - Effect: `_is_nwave_subagent` is false in children. The host-scan lockdown (`find`/`bfs`) and the lane guard (`lane_guard.py:53`) silently do not apply to pi children.
+  - Codex floor likely has the same limit (not checked).
+- `PI_CODE_AGENT_HOOKS` (env, carries agent name) is set only when the agent file has frontmatter hooks.
+
+Decision input: if pi must enforce host-scan/lane guard in children, the spawn must put the role in the child env (e.g. `NWAVE_AGENT_TYPE`) and `nwave_ai` must read it. pi-code's spawn does not. Own spawn (option b) can; wrapper cannot without frontmatter hooks.
+
+### Decision: child identity gap accepted (Codex parity)
+
+Status: decided (user).
+
+- Pi children get no `agent_type` on tool payloads, so host-scan lockdown and the lane guard do not apply to them.
+- Accepted as Codex parity: Codex registers one `PreToolUse` hook on shell only (`pi-vs-codex-gaps.md`), and the Codex plugin code has no `agent_type`, host-scan or lane-guard handling (grep, not confirmed against a live Codex run).
+- No `NWAVE_AGENT_TYPE` env plumbing and no `nwave_ai` change for rung 3.
+- Consequence: the wrapper path (alias over pi-code `subagent`) is not ruled out by hook visibility.
+- Revisit if: Codex is shown to carry `agent_type`, or nWave wants enforcement beyond Codex.
