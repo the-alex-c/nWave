@@ -1,6 +1,6 @@
 # Rung 3 research: `Agent` wrapping pi-code `subagent` (gap 2)
 
-Status: source-read, then run (see "Run results"). No real model calls. Resolves part of gap 2 in [gaps-tmp.md](gaps-tmp.md)
+Status: source-read, then run (see "Run results"). No real model calls. Resolves part of gap 2 in [subagent-delegation-gaps.md](subagent-delegation-gaps.md)
 and corrects [subagent-delegation-notes.md](subagent-delegation-notes.md) ("Alias option").
 
 ## Question

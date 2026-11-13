@@ -1,6 +1,6 @@
-# Rung 3 (`Agent` subagent delegation on pi): open gaps, ranked by risk (temporary)
+# Rung 3 (`Agent` subagent delegation on pi): open gaps, ranked by risk
 
-Temporary working list. Delete or fold into `subagent-delegation.md` when settled.
+Living list of open gaps for rung 3. Remove items as they settle.
 Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-notes.md](subagent-delegation-notes.md), [stall-diagnostic.md](stall-diagnostic.md).
 
 ## Ranked by risk
@@ -18,7 +18,10 @@ Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-
    - pi-code refuses grandchildren via `PI_CODE_SUBAGENT` env in the child (source-read, not run).
    - Still open: `max_turns` has no call param in pi-code (frontmatter `maxTurns` only), unmapped.
 
-3. **Hook visibility.** Already noted in `subagent-delegation-notes.md` (Open point 4, Risks). Not re-analysed here.
+3. **Hook visibility: decided (source-read; details in [subagent-delegation-notes.md](subagent-delegation-notes.md) "Hook visibility (gap 3)").**
+   - pi installer registers `Bash|Write|Edit` only; `pre-task` (`Agent` matcher) never fires on pi and only logs anyway.
+   - Children get no `agent_type` on tool payloads, so host-scan lockdown and lane guard do not apply to them. **Decided (user): accepted as Codex parity**; no `NWAVE_AGENT_TYPE` plumbing. Does not rule out the wrapper.
+   - Still unrun: `Bash|Write|Edit` hooks firing inside a child; how many `Agent`-named PreToolUse events the wrapper emits (matters only if an `Agent` matcher is added).
 4. **Typed reply: verified (pi 1.4.0). Mechanism offline with faux model ([typed-reply-probe.ts](typed-reply-probe.ts)); real model `claude-haiku-4-5` for parent and child ([typed-reply-probe-real.ts](typed-reply-probe-real.ts)).**
    - Chosen design: submit tool. Fence-strip + retry is not needed as the primary path.
    - Child (full `pi`, loads the same extension) has a `submit_result` tool with the envelope schema. pi validates args in the child: a call missing `summary` got a `Validation failed ...` tool result, the model re-called with valid args. Retry is free and in-loop.
