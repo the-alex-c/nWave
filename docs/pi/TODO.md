@@ -56,6 +56,7 @@ Branch: `pi-platform-rung-3`
 - [ ] Typed reply equivalent of Codex `--output-schema` so roles can return `role_envelope`
 - [ ] Installer: pi agents plugin; inline skills into role text and give the tool ceiling as a prompt preamble (model on `codex_agents_plugin.py`)
 - [ ] Optional per-role `model`
+- [ ] Optional, low priority, not a requirement: wall-clock cap on the `Agent` child (runaway backstop; kill tree, typed failure). No stall detection: the stall guard is the installer's concern. Default is unmeasured (900 s was sized against stalls, not task duration); measure real child durations first. See gap 5 in [subagent-delegation-gaps.md](research/rung-3/subagent-delegation-gaps.md)
 - [ ] Verify: tool-ceiling enforcement, model inheritance, session format for `nwdes measure` (use `--requests` until then)
 
 ## Rung 4: OMP (commands, extension, autoload)

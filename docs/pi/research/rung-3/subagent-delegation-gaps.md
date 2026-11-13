@@ -5,10 +5,12 @@ Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-
 
 ## Ranked by risk
 
-1. **Implementation path undecided.** Name is decided (`Agent`, Claude param shape). Path is not.
-   - Wrapper: `Agent` calls pi-code `subagent` via `ctx.executeTool`; widen the rung 2 filter; hide `subagent` from the model.
-   - Own spawn: nWave registers `Agent` and runs `pi --mode json -p --no-session` itself.
-   - The spike tested `subagent`, never `Agent`. Its evidence (discovery, ceiling) holds for the wrapper path. Own spawn is untested.
+1. **Implementation path: decided (user). Wrapper, name `Agent` (Claude param shape), `subagent` hidden from the model.**
+   - `Agent` calls pi-code `subagent` via `ctx.executeTool`; widen the rung 2 filter.
+   - No aliases, no startup status line. Name adaptation per model is deferred; evidence is thin (RoTBench/ToolRobustBench show tool-interface perturbation hurts, none isolates Claude-specific names). Claude Code renamed `Task` to `Agent` in v2.1.63 and keeps `Task` as an alias; other harnesses use `subagent`, `task`, `delegate_task`, or one tool per agent (Gemini CLI).
+   - Why not bare `subagent`: no failure detection (`isError:false`), no typed reply, no cap, param shape differs from Claude's.
+   - Own spawn (`pi --mode json -p --no-session`): untested, not needed unless the wrapper hits a wall.
+   - The spike tested `subagent`, never `Agent`. Its evidence (discovery, ceiling) holds for the wrapper path.
 2. **Wrapper mechanics: verified (pi 1.4.0, no model calls; details in [agent-wrapper-mechanics.md](agent-wrapper-mechanics.md)).**
    - `ctx.executeTool` exists and works; the Cellar dir name `0.85.1` is misleading, `package.json` says 1.4.0, docs match.
    - Hiding: `exposure: "hidden"` and `setActiveTools()` break the wrapper. `prepareLoadout()` returning `hiddenDeclarations: ["subagent"]` works across extensions: payload tools are `Read, Bash, Edit, Write, Agent`.
@@ -48,7 +50,8 @@ Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-
    - Open: provider-side cause (why the prefill is not done after >= 270 s); whether the trickle is `ping` events.
    - Candidate remedy, **untested**: `git:github.com/ssweens/pi-anthropic-stall-guard` (commit `980381f`). Wraps `globalThis.fetch`, errors a `/v1/messages` stream with no `message_start` 90 s after headers (`PI_ANTHROPIC_STALL_MS`); pi's retry treats "timed out" as retryable. Hook point valid on pi 1.4.0 (SDK client built per request with global `fetch`; source-read). Matches 5d. If it holds, the 900 s cap becomes a backstop, not the fix.
    - Guard does not cover: stalls before headers (SDK timeout handles), non-Anthropic providers, `request-id` capture (still needed to escalate). External dependency: nWave would need to install it.
-   - pi-code `run.ts` has no parent-side timeout on the child. The wrapper path inherits that; `Agent` needs a cap regardless of cause (**decided: 900 s wall-clock default, per-call override; timeout kills the child tree and returns a typed failure `{outcome:"failed", diagnostic:"timeout 900s"}`, no silent retry**). Basis: n=3 completed stalls of 362-566 s plus 1 aborted at 368 s, median reply 2-6 s. Idle/heartbeat kill not adopted: the byte capture shows a keep-alive trickle, so a byte-idle timer would not fire (same as pi's own). A token-idle timer would, but needs stream parsing in the child: YAGNI while the wall-clock cap covers it.
+   - **Stall guard: out of scope (user).** Installing it is the installer's concern, not the wrapper's. The wrapper does no stall detection.
+   - pi-code `run.ts` has no parent-side timeout on the child; the wrapper inherits that. **Deferred (user): a wall-clock cap is an optional, low-priority item in [TODO.md](../../TODO.md) rung 3, not a requirement.** The earlier 900 s figure is withdrawn as a decision: it was sized against stalls (n=3 completed 362-566 s, 1 aborted at 368 s, median reply 2-6 s), not legitimate child task duration, and could kill long real work. Measure real child durations before choosing a default. If built: runaway backstop, per-call override, kill the child tree, typed failure, no silent retry. Idle/heartbeat kill not adopted: the keep-alive trickle defeats a byte-idle timer.
 6. **Lower-risk.**
    - Skill inlining unchecked.
    - Children run `--no-session`: `nwdes measure` has nothing to read (use `--requests`).
@@ -58,6 +61,6 @@ Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-
 
 ## Next step
 
-Item 2 DONE: see [agent-wrapper-mechanics.md](agent-wrapper-mechanics.md) "Run results"; wrapper path verified (hiding, roster override, nested hooks work; nested failure is `isError:false`). Decide item 1 = wrapper unless own-spawn needs justify.
+Items 1 and 2 DONE: wrapper path verified ([agent-wrapper-mechanics.md](agent-wrapper-mechanics.md) "Run results") and chosen. Next: build the `Agent` wrapper (param mapping incl. `max_turns`, failure detection, `submit_<role>` envelope extraction, nested-hook allowance).
 
 (old plan) Item 2: throwaway extension registering `Agent` that calls `subagent` via `ctx.executeTool`. Run on pi 1.4.0 in an isolated `PI_CODING_AGENT_DIR`. No model calls. Outcome picks wrapper or own spawn.
