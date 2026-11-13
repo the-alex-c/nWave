@@ -1,4 +1,6 @@
-# pi platform: master TODO
+# pi platform: parity TODO
+
+> **Scope: parity only.** This file tracks capabilities pi lacks relative to other coding agents (Devin, Cursor, Copilot, Codex, OMP, Claude Code). Implementation choices, release splits (e.g. rung 3 parts A/B) and installer details belong in a separate TODO or the rung's ADR, not here.
 
 Tracks progress on making nWave work on pi, climbing the host ladder from Devin
 (lowest) to Claude Code (highest). What is built so far is described in

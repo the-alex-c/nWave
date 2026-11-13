@@ -6,7 +6,7 @@ agents with a tool ceiling and a typed reply, and what does rung 2's pi-code alr
 ## Sources read
 
 - `docs/pi/pi-vs-codex-gaps.md` (rows: role registry, delegation, typed reply, tool ceiling, model per role)
-- `docs/pi/TODO.md` (rung 3 items)
+- `docs/pi/TODO-PARITY.md` (rung 3 items)
 - `scripts/shared/pi_code_package.py` (rung 2 install and filter)
 - pi-code 1.7.0, installed at `~/.pi/agent/npm/node_modules/pi-code`:
   - `extensions/subagent/params.ts`, `agents.ts`, `child.ts`, `run.ts`, `background.ts`, `index.ts`

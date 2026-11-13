@@ -4,7 +4,7 @@ Branches `pi-platform-rung-1` and `pi-platform-rung-2` add a `pi` install target
 [pi](https://github.com/earendil-works/pi). It covers the two lowest rungs of the host
 ladder: skills (Devin) and the guard hook (Cursor/Copilot). The gap analysis behind it is in the `pi-vs-*-gaps.md`
 files next to this one; `pi-vs-devin-gaps.md` has the ladder. Progress and remaining
-work per rung: [TODO.md](TODO.md).
+work per rung: [TODO-PARITY.md](TODO-PARITY.md).
 
 ## What it does
 
