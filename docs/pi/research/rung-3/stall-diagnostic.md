@@ -117,6 +117,16 @@ than a silent hang. Not yet shown: whether these calls were still streaming or i
 - pi default `httpIdleTimeoutMs` = 300000 and agent retry = 3 (`docs/settings.md`). 362 s and 520 s exceed one idle window: either bytes trickled or pi timed out and retried. Not determined. No error entry was logged.
 - `stall-capture.sh` now samples `nettop` bytes_in/out twice. Next stall: flat bytes_in = zero-byte idle; growing = slow stream.
 
+### 5d. Byte captures 2026-11-12 19:00-19:05 local (PID 86189, session `01a1d211`, 6 captures)
+
+- Prompt 00:00:30Z, ~68k context (`bytes_out` 202,093, flat in all 6). One socket (port 53369) throughout: no retry.
+- `bytes_in`: 3,886 -> 6,005 in the first window (~20-30 s after send), then +35 B per ~30 s (6,040 / 6,110 / 6,180 / 6,250 / 6,320, one per minute). Flat within each 10 s window.
+- `cache_warm` at 00:05:01Z (+271 s): `cacheRead: 0`, `cacheWrite: 68073`, $0.17. Same signature as 5c.
+- User aborted at 00:06:38Z (368 s): `stopReason: aborted`, 0 output tokens. No error entry.
+- Reading: not zero-byte idle, not a slow token stream. A small periodic frame, keep-alive size (likely SSE `ping`; inference, TLS not decrypted). No text tokens reached pi.
+- Why pi does not time out (source-read, pi 1.4.0): `sdk.js` passes `timeoutMs = httpIdleTimeoutMs` to the Anthropic SDK, whose `fetchWithTimeout` clears the timer once response headers arrive. `core/http-dispatcher.js` sets undici `bodyTimeout` = same value, an idle timer between body chunks. The trickle resets it. So the wait is unbounded from pi's side.
+- Answers Open "whether pi streams tokens during the long calls" (no) and 5c "timed out and retried" (no retry).
+
 ### 6. Ruled out (for the root stall)
 
 - pi-code subagent: root stall also seen without subagents (user report).
