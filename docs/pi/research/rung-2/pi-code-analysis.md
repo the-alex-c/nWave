@@ -3,7 +3,7 @@
 Package: [pi-code](https://github.com/ilovepixelart/pi-code) 1.7.0, MIT, single maintainer, updated 2026-11-04.
 Checkout read: `pi-code/main` at commit `4d30da7` (`extensions/hooks/` is 2.4k lines, plus `extensions/internal/`). Source-read only; nothing was executed in pi.
 
-Goal: run `python -m nwave_ai.hooks PreToolUse --host pi` on pi `bash`/`write`/`edit` calls without writing our own extension (see [TODO.md](../../TODO.md), rung 2). Sibling analysis, same questions for the other candidate: [pi-claude-hooks-analysis.md](pi-claude-hooks-analysis.md).
+Goal: run `python -m nwave_ai.hooks PreToolUse --host pi` on pi `bash`/`write`/`edit` calls without writing our own extension (see [TODO-PARITY.md](../../TODO-PARITY.md), rung 2). Sibling analysis, same questions for the other candidate: [pi-claude-hooks-analysis.md](pi-claude-hooks-analysis.md).
 
 ## Verdict
 

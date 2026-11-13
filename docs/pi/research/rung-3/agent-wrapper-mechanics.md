@@ -73,6 +73,8 @@ pi-ai `fauxProvider` (registered via legacy `pi.registerProvider` form with `str
 4. **New: failure is not `isError`.** Unknown agent returned `isError:false` with text `Agent failed: Unknown agent ...`.
    The wrapper must detect failure itself (check `details.results[].exitCode`/text), not trust `isError`.
 
+5. **Real-model run** (pi 1.4.0, isolated dir, `CLAUDE_CODE_SUBAGENT_MODEL` set, pi-code hooks + subagent loaded): `Agent(scout)` returned `PONG`; `tool_call` log `Agent`, `subagent`; model said it has no `subagent` tool.
+
 ## Verdict (updated)
 
 Wrapper path verified on mechanics. Remaining: `max_turns` mapping, typed reply (gap 4), timeout cap (gap 5).

@@ -49,4 +49,4 @@ We write no pi extension.
 - [pi-code-analysis.md](pi-code-analysis.md): source read, gaps.
 - [pi-code-falsifiers.md](pi-code-falsifiers.md): test runs #1 to #6.
 - [pi-claude-hooks-analysis.md](pi-claude-hooks-analysis.md): the other candidate.
-- [TODO.md](../../TODO.md): rung 2 work.
+- [TODO-PARITY.md](../../TODO-PARITY.md): rung 2 work.

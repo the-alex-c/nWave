@@ -6,7 +6,7 @@ agents with a tool ceiling and a typed reply, and what does rung 2's pi-code alr
 ## Sources read
 
 - `docs/pi/pi-vs-codex-gaps.md` (rows: role registry, delegation, typed reply, tool ceiling, model per role)
-- `docs/pi/TODO.md` (rung 3 items)
+- `docs/pi/TODO-PARITY.md` (rung 3 items)
 - `scripts/shared/pi_code_package.py` (rung 2 install and filter)
 - pi-code 1.7.0, installed at `~/.pi/agent/npm/node_modules/pi-code`:
   - `extensions/subagent/params.ts`, `agents.ts`, `child.ts`, `run.ts`, `background.ts`, `index.ts`
@@ -43,8 +43,8 @@ Nothing was executed. Findings are source-read only.
 2. **Name shape.** nWave's skill `nw-role-invocation` calls `Agent(subagent_type="nw-<role>", prompt=...)`
    (or Codex `spawn_agent`). pi-code exposes `subagent(agent=..., task=...)`. Needs an alias
    or a prompt-level mapping.
-3. **Skill inlining.** Codex inlines skills into `developer_instructions`. Not checked whether
-   pi-code injects skills into a child. Treat as open.
+3. **Skill inlining.** Codex inlines skills into `developer_instructions`. pi-code does inject
+   `skills:` into a child (verified live; needs `$CLAUDE_CONFIG_DIR/skills`). No inlining needed.
 4. **Output envelope.** `run.ts` returns final assistant text. Structured parsing is not present.
 5. **Session format for `nwdes measure`.** Children run with `--no-session`. The TODO says to use
    `--requests` until a session format exists. Still open.
@@ -114,7 +114,7 @@ Conclusion: intermittent, about 1 in 28 subagent runs, outside pi-code's subagen
 open. Mitigation for nWave: wall-clock cap on the delegation call, and timestamped logs to
 confirm the stalled stage.
 
-Not tested: model per role other than default, skill inlining, failing-envelope detection, `nwdes measure` session format.
+Not tested: model per role other than default, failing-envelope detection, `nwdes measure` session format.
 
 Root-session stalls (no subagents involved) and the diagnostic runbook: [stall-diagnostic.md](stall-diagnostic.md).
 

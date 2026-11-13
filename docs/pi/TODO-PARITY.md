@@ -1,4 +1,6 @@
-# pi platform: master TODO
+# pi platform: parity TODO
+
+> **Scope: parity only.** This file tracks capabilities pi lacks relative to other coding agents (Devin, Cursor, Copilot, Codex, OMP, Claude Code). Implementation choices, installer details belong in a separate TODO or the rung's ADR, not here.
 
 Tracks progress on making nWave work on pi, climbing the host ladder from Devin
 (lowest) to Claude Code (highest). What is built so far is described in
@@ -54,7 +56,7 @@ Branch: `pi-platform-rung-3`
 - [ ] Named role registry (agent files pi can discover)
 - [ ] `spawn_agent`-style delegation tool in a new extension (rung 2 has none; pi-code is hooks only). Starting points: pi's `examples/extensions/subagent` (spawns a `pi` subprocess) and `pi-code`'s own `subagent` tool (dropped by the rung 2 hooks-only filter)
 - [ ] Typed reply equivalent of Codex `--output-schema` so roles can return `role_envelope`
-- [ ] Installer: pi agents plugin; inline skills into role text and give the tool ceiling as a prompt preamble (model on `codex_agents_plugin.py`)
+- [ ] Installer: pi agents plugin; keep `skills:` (pi-code preloads them from `$CLAUDE_CONFIG_DIR/skills`) and give the tool ceiling as a prompt preamble (model on `codex_agents_plugin.py`)
 - [ ] Optional per-role `model`
 - [ ] Optional, low priority, not a requirement: wall-clock cap on the `Agent` child (runaway backstop; kill tree, typed failure). No stall detection: the stall guard is the installer's concern. Default is unmeasured (900 s was sized against stalls, not task duration); measure real child durations first. See gap 5 in [subagent-delegation-gaps.md](research/rung-3/subagent-delegation-gaps.md)
 - [ ] Verify: tool-ceiling enforcement, model inheritance, session format for `nwdes measure` (use `--requests` until then)

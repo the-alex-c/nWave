@@ -3,7 +3,7 @@
 Package: [@jordyvanvorselen/pi-claude-hooks](https://github.com/jordyvanvorselen/pi-claude-hooks) 0.1.2, MIT, single maintainer, pre-1.0.
 Checkout read: `pi-claude-hooks/main` (about 1,000 lines in `src/`, plus `extensions/claude-hooks.ts`). Source-read only; nothing was executed in pi.
 
-Goal: run `python -m nwave_ai.hooks PreToolUse --host pi` on pi `bash`/`write`/`edit` calls without writing our own extension (see [TODO.md](../../TODO.md), rung 2).
+Goal: run `python -m nwave_ai.hooks PreToolUse --host pi` on pi `bash`/`write`/`edit` calls without writing our own extension (see [TODO-PARITY.md](../../TODO-PARITY.md), rung 2).
 
 ## Verdict
 
