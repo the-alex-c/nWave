@@ -25,10 +25,10 @@ writes `.nwave-manifest.json` there.
 
 `--pi-level 1|2` picks the rung. Rung 2 builds on rung 1.
 
-| Level | Installs |
-|---|---|
-| 1 | Skills only. |
-| 2 (default) | Level 1 + the guard (below). |
+| Level | Installs | Does not install |
+|---|---|---|
+| 1 | Skills only. | The guard (pi-code, `PreToolUse` entry, shell-rc block), role agents, delegation, typed replies. |
+| 2 (default) | Level 1 + the guard (below). | Role agents, delegation, typed replies. |
 
 Re-installing at a lower level removes what the target level would not install on
 its own: nWave's pi-code (only if nWave installed it), the `PreToolUse` hook entry and
