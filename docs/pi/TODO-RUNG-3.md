@@ -28,13 +28,15 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 
 ## Validation (all-or-nothing)
 
-- [ ] Before writing, check each role:
+- [x] `scripts/shared/pi_role_validation.py`: check each generated role:
   - frontmatter parses
   - `tools:` resolve to pi built-ins or `submit_<role>`
   - `skills:` exist
-  - pi-code lists the agent
-- [ ] Report prompt size per role (warn on large; no cap).
-- [ ] List all failures at once; leave target untouched on any failure.
+- [ ] Check pi-code lists the agent (planned: E2E test, not install time).
+- [ ] Report prompt size per role (`prompt_chars` returned; warn on large not yet; no cap).
+- [x] List all failures at once.
+- [ ] Leave target untouched on any failure (needs the generator).
+- [ ] Map or drop Claude tools `Task`, `Skill`, `WebFetch`, `WebSearch` (undecided; validation rejects them today).
 - [ ] Run the same check as a test over every role.
 
 ## `Agent` wrapper

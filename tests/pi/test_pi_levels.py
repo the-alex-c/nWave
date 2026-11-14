@@ -16,6 +16,7 @@ from tests.pi.conftest import PiBoth as PiSkillsPlugin
 from scripts.install.plugins.nwave_hooks_plugin import HooksPlugin
 from scripts.shared import pi_code_package as pcp
 
+
 HOOKS = "extensions/hooks/index.ts"
 SUBAGENT = "extensions/subagent/index.ts"
 

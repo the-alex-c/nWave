@@ -52,7 +52,10 @@ def filter_for(level: int) -> list[str]:
 
 
 def _canonical(entry: Any, level: int) -> bool:
-    return isinstance(entry, dict) and entry == {"source": SOURCE, "extensions": filter_for(level)}
+    return isinstance(entry, dict) and entry == {
+        "source": SOURCE,
+        "extensions": filter_for(level),
+    }
 
 
 def _marker(pi_dir: Path) -> Path:
@@ -72,7 +75,9 @@ def _pin(settings: Path, level: int) -> None:
     """Rewrite the installed entry to the pinned, filtered form."""
     document = _load(settings)
     document["packages"] = [
-        {"source": SOURCE, "extensions": filter_for(level)} if _source(e) == SOURCE else e
+        {"source": SOURCE, "extensions": filter_for(level)}
+        if _source(e) == SOURCE
+        else e
         for e in document.get("packages", [])
     ]
     settings.write_text(json.dumps(document, indent=2) + "\n", encoding="utf-8")
