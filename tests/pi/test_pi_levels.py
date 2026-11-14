@@ -19,6 +19,7 @@ from scripts.shared import pi_code_package as pcp
 
 HOOKS = "extensions/hooks/index.ts"
 SUBAGENT = "extensions/subagent/index.ts"
+WEB = "extensions/web.ts"
 
 
 @pytest.fixture(autouse=True)
@@ -160,9 +161,9 @@ def test_level_2_loads_hooks_only(pi_dir: Path, ctx: Any) -> None:
     assert _extensions(pi_dir) == [HOOKS]
 
 
-def test_level_3_loads_hooks_and_subagent(pi_dir: Path, ctx: Any) -> None:
+def test_level_3_loads_hooks_subagent_and_web(pi_dir: Path, ctx: Any) -> None:
     _install(ctx, 3)
-    assert _extensions(pi_dir) == [HOOKS, SUBAGENT]
+    assert _extensions(pi_dir) == [HOOKS, SUBAGENT, WEB]
 
 
 def test_level_3_records_level_3_in_manifest(pi_dir: Path, ctx: Any) -> None:
@@ -180,7 +181,7 @@ def test_reinstall_3_to_2_narrows_filter(pi_dir: Path, ctx: Any) -> None:
 def test_reinstall_2_to_3_widens_filter(pi_dir: Path, ctx: Any) -> None:
     _install(ctx, 2)
     _install(ctx, 3)
-    assert _extensions(pi_dir) == [HOOKS, SUBAGENT]
+    assert _extensions(pi_dir) == [HOOKS, SUBAGENT, WEB]
 
 
 def test_reinstall_3_to_1_removes_pi_code(pi_dir: Path, ctx: Any) -> None:

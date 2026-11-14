@@ -16,7 +16,7 @@ from typing import Any
 
 SOURCE = "npm:pi-code@1.7.0"
 FILTER = ["extensions/hooks/index.ts"]
-DELEGATION_FILTER = [*FILTER, "extensions/subagent/index.ts"]
+DELEGATION_FILTER = [*FILTER, "extensions/subagent/index.ts", "extensions/web.ts"]
 DELEGATION_LEVEL = 3
 MARKER = ".nwave-pi-code.json"
 _NAME = re.compile(r"^npm:pi-code(@.+)?$")

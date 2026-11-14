@@ -48,14 +48,14 @@ Our level 3 filter (`pi_code_package.DELEGATION_FILTER`) keeps only `hooks/index
 `extensions/internal/claude-tool-names.ts` pairs Claude and pi names and applies them to an agent's `tools:`: `Glob→find`, `WebFetch→web_fetch`, `WebSearch→web_search`, `Task`/`Agent→subagent`, `Skill→slash_command`. A role could pass Claude names through unchanged. Not relied on: our validator is stricter on purpose and the explicit pi names keep generated files readable and checkable.
 
 ### F4. A child can only use a fixed tool set
-`subagent/child.ts` `CHILD_TOOL_NAMES`: `read bash edit write grep find ls web_fetch web_search list_mcp_resources read_mcp_resource todo question memory slash_command plan_mode_complete`. `subagent` is not in it. A child launch fails only when no `tools:` entry resolves (`unresolvedToolsError`); one stray unresolved name is harmless at runtime. Consequence: mapping `Task` to the `Agent` wrapper makes `Agent` available to the parent. Whether a child can call `Agent` is **unverified**.
+`subagent/child.ts` `CHILD_TOOL_NAMES`: `read bash edit write grep find ls web_fetch web_search list_mcp_resources read_mcp_resource todo question memory slash_command plan_mode_complete`. `subagent` is not in it. A child launch fails only when no `tools:` entry resolves (`unresolvedToolsError`); one stray unresolved name is harmless at runtime. Consequence: mapping `Task` to the delegation tool makes it available to the parent (`subagent` now, the `Agent` wrapper later). Whether a child can call it is **unverified**.
 
 ### F5. Scoped grants widen under pi-code
 `agents.ts` `parseToolsField`: as in Claude Code, a scope on a grant (`Bash(git log:*)`) does not limit the agent; it gets the base tool. This is the opposite of the OMP "never widen" law.
 
 ## Open unknowns (need a live run)
 - U1. Does a child load `web.ts` when it is in the filter?
-- U2. Is the `Agent` wrapper tool callable inside a child?
+- U2. Is the delegation tool (`subagent`, later `Agent`) callable inside a child?
 - U3. Do `nwdes_cli_role_tools` roles produce scoped grants for pi? (Absent from current `tools:` lines.)
 - U4. `nwdes_cli_role_tools` roles: Bash plus the nwdes CLI (OMP), or `submit_<role>` as well? Not yet decided; outside this write-up.
 

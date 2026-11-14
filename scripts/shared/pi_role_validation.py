@@ -7,13 +7,27 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from scripts.shared.frontmatter import parse_frontmatter
+from scripts.shared.pi_role_mapping import DELEGATION_TOOL
 
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-PI_BUILTINS = frozenset({"read", "bash", "edit", "write", "grep", "find", "ls"})
+PI_BUILTINS = frozenset(
+    {
+        "read",
+        "bash",
+        "edit",
+        "write",
+        "grep",
+        "find",
+        "ls",
+        DELEGATION_TOOL,
+        "web_fetch",
+        "web_search",
+    }
+)
 
 
 @dataclass(frozen=True)

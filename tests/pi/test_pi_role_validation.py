@@ -39,10 +39,18 @@ def test_unparseable_frontmatter_is_an_error(skills_dir: Path) -> None:
     assert validate_role("nw-x", "no frontmatter", skills_dir).errors
 
 
-@pytest.mark.parametrize("tool", ["SendMessage", "Task", "submit_other_role"])
+@pytest.mark.parametrize(
+    "tool", ["SendMessage", "Task", "Skill", "WebFetch", "submit_other_role"]
+)
 def test_unresolved_tool_is_an_error(skills_dir: Path, tool: str) -> None:
     errors = validate_role("nw-x", _role(tools=f"read, {tool}"), skills_dir).errors
     assert any(tool in e for e in errors)
+
+
+@pytest.mark.parametrize("tool", ["subagent", "web_fetch", "web_search"])
+def test_accepted_adr_tools_resolve(skills_dir: Path, tool: str) -> None:
+    role = _role(tools=f"read, {tool}, submit_nw_x")
+    assert validate_role("nw-x", role, skills_dir).errors == []
 
 
 def test_missing_skill_is_an_error(skills_dir: Path) -> None:

@@ -8,12 +8,20 @@ Roles declare `Task` (14 roles), `Skill` (4), `WebFetch` (4) and `WebSearch` (3)
 
 ## Decisions
 
-### 1. `Task` maps to `Agent`, the wrapper (accepted)
+### 1. `Task` maps to the delegation tool: `subagent` now, `Agent` when the wrapper lands (accepted)
 
-`Task` (and `Agent`) in a role's `tools:` becomes `Agent`. The validator allows `Agent`.
+`Task` (and `Agent`) in a role's `tools:` becomes `subagent`, the name pi-code registers
+today and already resolves from `Task` (F3). The validator allows `subagent`. When the
+`Agent` wrapper ships, the target changes to `Agent`: one table value in
+`pi_role_mapping.py` (`DELEGATION_TOOL`), one validator entry, one test row. A reinstall
+regenerates the files (the install is idempotent).
 
-- Why: the wrapper is the delegation tool the model sees (`subagent` is hidden).
-- Risk: whether a child can call `Agent` is unverified (U2). If not, the entry is inert in children; it does not fail the launch (F4).
+- Why: the wrapper is a separate TODO item and the mapping needs nothing from it. `subagent`
+  is the real name until then, so no role file names a tool that does not exist.
+- Why `Agent` later: the wrapper is the delegation tool the model sees (`subagent` is hidden).
+- Risk: whether a child can call the delegation tool is unverified (U2). If not, the entry is
+  inert in children; it does not fail the launch (F4).
+- Rejected: write `Agent` now. Roles would name a tool nothing registers.
 
 ### 2. `Skill` is dropped from `tools:`; the body directive becomes a `read` (accepted)
 
@@ -52,7 +60,7 @@ Follow the OMP laws. A scoped entry (`Bash(...)`) is dropped, not mapped to bare
 |---|---|---|
 | Read, Write, Edit, Bash, Grep | `read write edit bash grep` | |
 | Glob | `find` | |
-| Task, Agent | `Agent` | |
+| Task, Agent | `subagent` (becomes `Agent` with the wrapper) | |
 | WebFetch | `web_fetch` | |
 | WebSearch | `web_search` | |
 | Skill | dropped | body directive translated |
@@ -65,14 +73,15 @@ Follow the OMP laws. A scoped entry (`Bash(...)`) is dropped, not mapped to bare
 ## Consequences
 
 - Every current role validates after mapping; none fails the all-or-nothing check on a tool name.
-- Validator: `PI_BUILTINS` gains `Agent`, `web_fetch`, `web_search`.
+- Validator: `PI_BUILTINS` gains `subagent`, `web_fetch`, `web_search` (`subagent` becomes `Agent` with the wrapper).
 - `pi_code_package`: `DELEGATION_FILTER` gains `extensions/web.ts`; `tests/pi/test_pi_levels.py` updated.
 - Tests to add before the green step: each table row, the scoped drop with its report, the `Invoke Skill(X)` translation, and the filter entry.
 
 ## Accepted risks
 
 - U1 and U2 are unverified until a live run (`NWAVE_PI_E2E`).
-- Writing the `Agent` name into child roles is inert if children cannot call it.
+- Writing the delegation tool name into child roles is inert if children cannot call it.
+- The rename `subagent` → `Agent` is a follow-up; roles generated before it name `subagent` until reinstall.
 - DuckDuckGo scraping (`web_search`) is key-free and may break upstream; not under our control.
 - Depends on pi-code's `web.ts` staying at that path (the filter is path-based).
 

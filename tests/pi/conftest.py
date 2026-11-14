@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -54,18 +55,18 @@ def pi_calls(pi_dir, monkeypatch):
 class PiBoth:
     """Guard plugin then skills plugin, as the registry orders them."""
 
-    def _each(self, method, ctx):
+    def _each(self, method: str, ctx: Any) -> Any:
         from scripts.install.plugins.pi_guard_plugin import PiGuardPlugin
         from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
 
         results = [getattr(p, method)(ctx) for p in (PiGuardPlugin(), PiSkillsPlugin())]
         return next((r for r in results if not r.success), results[-1])
 
-    def install(self, ctx):
+    def install(self, ctx: Any) -> Any:
         return self._each("install", ctx)
 
-    def uninstall(self, ctx):
+    def uninstall(self, ctx: Any) -> Any:
         return self._each("uninstall", ctx)
 
-    def verify(self, ctx):
+    def verify(self, ctx: Any) -> Any:
         return self._each("verify", ctx)
