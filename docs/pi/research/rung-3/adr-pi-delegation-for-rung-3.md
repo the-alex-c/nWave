@@ -11,17 +11,19 @@ and expect a `role_envelope` reply.
 
 ## Decisions
 
-### 1. Rung 3 ships in two parts, each a merge point
+### 1. Rung 3 ships as one delivery
 
-- **Part A:** agents plugin + unfiltered pi-code `subagent`. Delegation works on bare
-  `subagent(agent, task)`. Experimental. No `Agent` name, no typed reply, no failure
-  detection (`isError:false` on failure), roster leak stays.
-- **Part B:** `Agent` wrapper over `subagent` (via `ctx.executeTool`, `subagent` hidden
-  from the model) and per-role `submit_<role>` typed reply.
+One delivery: agents plugin, unfiltered pi-code `subagent`, an `Agent` wrapper over
+`subagent` (via `ctx.executeTool`, `subagent` hidden from the model) and per-role
+`submit_<role>` typed reply. Experimental until validated live.
 
-Why: Part A needs nothing Part B throws away (the role files and the widened filter are
-both required later) and gives users delegation sooner.
+Why: a bare-`subagent` first release would ship known defects (`isError:false` on
+failure, prose replies, roster leak, param shape differing from Claude's) that the
+wrapper removes. The maintainer prefers one delivery over a staged one; release order
+is not a concern.
 
+- Rejected: staged release (bare `subagent` first, wrapper later). Rework cost is low,
+  but the interim defects need documenting and testing only to be deleted.
 - Rejected: bare `subagent` as the final design. No failure detection, no typed reply,
   no cap, param shape differs from Claude's.
 - Rejected: own spawn (`pi --mode json -p --no-session`). Not needed unless the wrapper
@@ -44,17 +46,18 @@ Generate `~/.pi/agent/agents/nw-*.md`, manifest-owned, removed on uninstall. Mod
 
 - Why all: nWave skills call roles by name. A missing role returns "Agent failed" with
   `isError:false`, which looks like success. A hand-picked subset also needs a rule.
-- Rejected: only the 8 roles with envelope schemas. Schemas matter for `submit_<role>`
-  (Part B), not for Part A.
+- Rejected: only the 8 roles with envelope schemas. Roles without a schema still need
+  to exist for delegation by name.
 
 ### 4. A role that fails validation fails the whole install
 
 Validate every role before writing anything: frontmatter parses, `tools:` resolve to pi
-built-ins, `skills:` exist, pi-code lists the agent, prompt size reported. List all
-failures. Leave the target untouched. The same check runs as a test over every role.
+built-ins or `submit_<role>`, `skills:` exist, pi-code lists the agent, prompt size
+reported. List all failures. Leave the target untouched. The same check runs as a test
+over every role.
 
 - Why: the maintainer wants to fix it, and a half-installed registry is worse.
-- Cost: one bad role blocks every pi user. Revisit if this goes upstream.
+- Cost: one bad role blocks every pi user. Accepted. Revisit if this goes upstream.
 - Rejected: skip with a warning.
 
 ### 5. Role file mapping
@@ -62,10 +65,10 @@ failures. Leave the target untouched. The same check runs as a test over every r
 Drop `SendMessage` (no pi equivalent). Drop the Claude-only `model` (role inherits the
 session model). Keep `maxTurns`. Apply `PI_PATH_REWRITES` and skill-invocation
 translation. Inline `skills:` (pi-code does not inject skills into a child; confirm
-before building). Part B adds `submit_<role>` plus a built-in to `tools:`; the plugin
-must be idempotent.
+before building). Add `submit_<role>` plus a built-in to `tools:`. The plugin must be
+idempotent.
 
-### 6. Part B design (decided earlier, recorded here)
+### 6. Wrapper and typed reply
 
 - Wrapper `Agent`; hide `subagent` via `prepareLoadout` `hiddenDeclarations`; remove the
   roster with `delete event.systemPromptOptions.sections.subagents`.
@@ -75,12 +78,13 @@ must be idempotent.
 - No `agent_type` on child payloads: accepted as Codex parity.
 - No stall detection (installer's concern). Wall-clock cap optional, unmeasured.
 
-Evidence for 6: [agent-wrapper-mechanics.md](agent-wrapper-mechanics.md), gaps 2-5.
+Evidence: [agent-wrapper-mechanics.md](agent-wrapper-mechanics.md), gaps 2-5.
 
 ## Accepted risks
 
-- Part A: the rung 2 guard's treatment of a `subagent` call is unverified; one live run
-  settles it.
-- Part A: roles return prose; anything expecting `role_envelope` fails until Part B.
+- The rung 2 guard's treatment of a `subagent` call is unverified; one live run settles
+  it.
+- The wrapper mechanics (`ctx.executeTool`, `hiddenDeclarations`) are documented but not
+  yet exercised; spike them first.
 - pi-code also scans `~/.claude/agents`; `nw-*` names may clash (project `.pi` wins).
 - Skill inlining may produce large prompts; sizes are reported, not capped.
