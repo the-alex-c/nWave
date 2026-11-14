@@ -78,8 +78,9 @@ methodology guidance and `nwdes` is used from the shell.
 ## Tests
 
 ```
-make test                       # all of tests/
-make test ARGS="-k discovers"   # filter
+make test-py                    # all of tests/
+make test-py ARGS="-k discovers"   # filter
+make test-js                    # pi-code-nwave (vitest)
 ```
 
 - `tests/pi/test_pi_skills_plugin.py` checks the installer: skills and manifest

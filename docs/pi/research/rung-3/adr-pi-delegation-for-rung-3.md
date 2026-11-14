@@ -18,7 +18,7 @@ One delivery: agents plugin, unfiltered pi-code `subagent`, an `Agent` wrapper o
 `submit_<role>` typed reply. Experimental until validated live.
 
 Why: a bare-`subagent` first release would ship known defects (`isError:false` on
-failure, prose replies, roster leak, param shape differing from Claude's) that the
+failure, prose replies, roster naming the hidden tool, param shape differing from Claude's) that the
 wrapper removes. The maintainer prefers one delivery over a staged one; release order
 is not a concern.
 
@@ -72,8 +72,33 @@ idempotent.
 
 ### 6. Wrapper and typed reply
 
-- Wrapper `Agent`; hide `subagent` via `prepareLoadout` `hiddenDeclarations`; remove the
-  roster with `delete event.systemPromptOptions.sections.subagents`.
+- Wrapper `Agent`; hide `subagent` via `prepareLoadout` `hiddenDeclarations`; rewrite the
+  roster, not delete it: pi-code's `subagents` section names the hidden `subagent` tool and `{agent, task}`, but
+  its agent list is the only place the model learns the `subagent_type` values. A `before_agent_start` handler
+  (after pi-code's) rewrites the intro to `Agent({subagent_type, prompt})` and keeps the list.
+- Failure detection: `classify` takes its own minimal input type (`ToolResult`), not pi's
+  `AgentToolCallOutcome` and not pi-code's types. pi's outcome is assignable to it (checked with
+  `tsc`), and pi types `details` as opaque; the fields `classify` reads (`details.results[0]`:
+  `exitCode`, `stopReason`, `stderr`, `errorMessage`, `partial`) are pi-code's `SingleResult`, and
+  pi-code is not a dependency (loaded at runtime, may change). Risk: a renamed pi-code field fails
+  silently; the failure-path E2E test covers it. Test types pin `@earendil-works/pi-coding-agent`
+  to the verified pi version (1.4.0).
+  - Which renames are loud or silent: `details.results` or `exitCode` renamed fails every call
+    (`empty` / `exit`), so it is noticed. `stopReason` renamed lets an errored child with exit 0 pass as
+    ok; `partial` renamed drops the flag. Both are silent. `stderr` / `errorMessage` only degrade the detail.
+  - pi-code's own failure text is `Agent ${stopReason || 'failed'}: ...` (`modes.ts`), so an errored child
+    reads `Agent error: ...`, not `Agent failed: ...`. The `"Agent failed:"` text check is a backstop;
+    the `details` checks do the work.
+  - Single-mode unknown agent (`modes.ts`) and unresolved tools return plain text with `results: []`, so
+    `classify` reports `empty`, not `subagent`. The `run.ts` path yields `Agent failed: Unknown agent`
+    (`subagent`). Both fail; the kind depends on the route.
+  - Mitigation: the installer pins `SOURCE = npm:pi-code@1.7.0`, so a rename arrives only on a version
+    bump. The contract test in the TODO (Ship) runs against real pi-code on every bump.
+- "Typed failure" (here and in the TODO) means exactly two things: the `Agent` result has
+  `isError: true`, and its text starts with `Agent failed (<kind>): <detail>`. The prefix is the only
+  place the kind appears; there is no `details.failure` field (YAGNI: nothing consumes it). Add one
+  only when a code consumer needs it (for example a `tool_result` hook). The failure-path tests assert
+  on the prefix.
 - Typed reply: per-role `submit_<role>` tools from `role_envelope_schemas.json`,
   registered only when `PI_CODE_SUBAGENT` is set. No valid submit after one nudge is a
   typed failure. No prose parsing.

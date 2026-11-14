@@ -37,7 +37,9 @@ running pi. The earlier worry about a docs/version mismatch does not hold.
 6. **pi-code injects a system-prompt section naming `subagent`.** `subagent/index.ts`,
    `before_agent_start` handler (about L215-232): "Delegate isolated tasks with the subagent tool
    ({agent, task}). Available agents: ...". After hiding, the model reads about a tool it cannot
-   see and `Agent` has no roster. Needs an nWave handler to replace or suppress it. Handler order
+   see and `Agent` has no roster. Decided: an nWave handler rewrites the section (not deletes it): the
+   intro names `Agent({subagent_type, prompt})`, the agent list pi-code built stays. Deleting would also
+   drop the only place the model learns which `subagent_type` values exist. Handler order
    between extensions is unverified.
 7. **No grandchildren.** pi-code's `execute()` returns "Nested subagent runs are not allowed" when
    `PI_CODE_SUBAGENT` is set (child env). Delegation depth stays one.
@@ -65,9 +67,9 @@ Probe: `Agent` tool with `prepareLoadout: () => ({hiddenDeclarations:['subagent'
 pi-ai `fauxProvider` (registered via legacy `pi.registerProvider` form with `streamSimple`).
 
 1. **Hiding works across extensions.** Provider payload `tools`: `Read, Bash, Edit, Write, Agent` (+ deferred placeholder). No `subagent`.
-2. **Roster leak confirmed, fix works.** Without a handler, payload has `<subagents>Delegate isolated tasks with the subagent tool ... Available agents: ...`.
+2. **Roster leak confirmed; deleting the section works, rewriting it is the decision (see 6).** Without a handler, payload has `<subagents>Delegate isolated tasks with the subagent tool ... Available agents: ...`.
    A `before_agent_start` handler in the later-loaded extension doing `delete event.systemPromptOptions.sections.subagents` removes it
-   (pi-code's handler runs first, ours second; order = load order). Better: `addPromptSection(event,'subagents', <Agent roster>)` same key overrides.
+   (pi-code's handler runs first, ours second; order = load order). Chosen instead: rewrite the same `subagents` key (intro line only, agent list kept); not run live.
 3. **Nested call works and hooks see both.** Log order: `call Agent`, `call subagent {agent,task}`, `result subagent`, `result Agent`.
    The rung 2 guard would see `subagent`, so it must allow it when nested (or key on `parentToolCallId`).
 4. **New: failure is not `isError`.** Unknown agent returned `isError:false` with text `Agent failed: Unknown agent ...`.

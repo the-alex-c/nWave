@@ -14,7 +14,7 @@ Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-
 2. **Wrapper mechanics: verified (pi 1.4.0, no model calls; details in [agent-wrapper-mechanics.md](agent-wrapper-mechanics.md)).**
    - `ctx.executeTool` exists and works; the Cellar dir name `0.85.1` is misleading, `package.json` says 1.4.0, docs match.
    - Hiding: `exposure: "hidden"` and `setActiveTools()` break the wrapper. `prepareLoadout()` returning `hiddenDeclarations: ["subagent"]` works across extensions: payload tools are `Read, Bash, Edit, Write, Agent`.
-   - Roster leak: pi-code's `before_agent_start` injects "Delegate isolated tasks with the subagent tool...". A later-loaded handler doing `delete event.systemPromptOptions.sections.subagents` removes it (order = load order).
+   - Roster leak: pi-code's `before_agent_start` injects "Delegate isolated tasks with the subagent tool...". Decided: a later-loaded handler rewrites the `subagents` section so the intro names `Agent({subagent_type, prompt})` and keeps pi-code's agent list (order = load order). Deleting it also works but hides the roster of agents from the model.
    - Nested hooks: `call Agent`, `call subagent`, `result subagent`, `result Agent`. Rung 2 guard sees `subagent`; it must allow it when nested.
    - New: unknown agent returns `isError: false` with text "Agent failed: ...". Wrapper must detect failure itself.
    - pi-code refuses grandchildren via `PI_CODE_SUBAGENT` env in the child (source-read, not run).

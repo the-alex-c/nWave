@@ -596,7 +596,7 @@ def main(
     logger = RichLogger(log_file=log_file, silent=use_json)
 
     if not use_json:
-        print_logo(logger)
+        print_logo(logger)  # pyright: ignore[reportArgumentType] -- duck-typed: RichLogger has print_styled
         logger.info("")
         logger.info("  🔍 nWave verification started")
 

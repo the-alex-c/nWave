@@ -14,6 +14,7 @@ import json
 import os
 import shutil
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -464,6 +465,7 @@ class NWaveUninstaller:
         locations = NWaveLocations.resolve(
             Path.home(), Path.cwd(), None, None, None
         ).unwrap()
+        assert locations is not None
         codex_manifest = locations.codex_config_dir / _NATIVE_DES_MANIFEST_FILENAME
         if codex_manifest.exists():
             installation_found = True
@@ -615,7 +617,7 @@ class NWaveUninstaller:
     def check_global_config(
         self,
         global_config_path: Path | None = None,
-        prompt_fn: object = None,
+        prompt_fn: Callable[[str], bool] | None = None,
     ) -> None:
         """Check for global config and prompt user about handling it.
 
@@ -1572,9 +1574,8 @@ class NWaveUninstaller:
                 cleaned: dict[str, object] = {"hooks": cleaned_events}
                 if "version" in doc:
                     cleaned["version"] = doc["version"]
-                events = cleaned.get("hooks", {})
                 any_user_entries = any(
-                    isinstance(v, list) and len(v) > 0 for v in events.values()
+                    isinstance(v, list) and len(v) > 0 for v in cleaned_events.values()
                 )
                 if any_user_entries:
                     hooks_path.write_text(
@@ -1721,7 +1722,10 @@ class NWaveUninstaller:
             templates_dir=self.claude_config_dir / "templates",
             logger=self.logger,
         )
-        results = [PiGuardPlugin().uninstall(context), PiSkillsPlugin().uninstall(context)]
+        results = [
+            PiGuardPlugin().uninstall(context),
+            PiSkillsPlugin().uninstall(context),
+        ]
         result = next((r for r in results if not r.success), results[-1])
         if result.success:
             self.logger.info("  🗑️ Removed pi skills")
@@ -1926,6 +1930,7 @@ class NWaveUninstaller:
                 config_dir = nwave_config_dir()
                 if self._attribution_repository is None:
                     self.prepare_attribution_removal()
+                assert self._attribution_repository is not None
                 warnings = remove_attribution_hook(
                     config_dir,
                     repository=self._attribution_repository,

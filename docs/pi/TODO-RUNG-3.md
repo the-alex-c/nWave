@@ -8,7 +8,7 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 
 - [x] Run `subagent(agent, task)` live. Does the rung 2 guard block or allow it? **Allowed.** The installed matcher is `Bash|Write|Edit`, so the guard never sees `subagent` (or `Agent`). Synthetic payloads to `hooks PreToolUse --host pi` also exit 0. Child ran and returned `PONG`. The child 404 on `claude-opus-4-8` was a missing model option in the test setup, not a design issue.
 - [x] Does pi-code inject `skills:` into a child? **Yes** (`withPreloadedSkills` inlines bodies; live: marker returned). Only from `$CLAUDE_CONFIG_DIR/skills` (rung 2 sets it to `~/.pi/agent`) or project `.claude/skills`; without it: `(skill not found)`, no error. So no inlining by the plugin; ADR 5 should change. Validation must check `skills:` resolve under `~/.pi/agent/skills`, and the child needs `CLAUDE_CONFIG_DIR` (inherited env).
-- [x] Spike the wrapper: `ctx.executeTool("subagent", ...)` works while `subagent` is hidden via `prepareLoadout` `hiddenDeclarations`. **Works with a real model** (faux-provider run already in `agent-wrapper-mechanics.md`): `Agent` -> `subagent` -> child returned `PONG`; hook saw `call Agent`, `call subagent`; model answered it has no `subagent` tool; roster section removed.
+- [x] Spike the wrapper: `ctx.executeTool("subagent", ...)` works while `subagent` is hidden via `prepareLoadout` `hiddenDeclarations`. **Works with a real model** (faux-provider run already in `agent-wrapper-mechanics.md`): `Agent` -> `subagent` -> child returned `PONG`; hook saw `call Agent`, `call subagent`; model answered it has no `subagent` tool; roster section removed (spike; the decision is now to rewrite it, see `Agent` wrapper).
 - [x] Check `nw-*` name clashes with `~/.claude/agents`. **No clash problem.** `~/.pi/agent/agents` beats `~/.claude/agents` (live: same name `nw-zz` in both, pi dir won). With `CLAUDE_CONFIG_DIR=~/.pi/agent` (rung 2) `~/.claude/agents` is not scanned at all. A project `.claude/agents` dir was ignored in the untrusted test repo; trusted-project precedence not run.
 
 ## Role registry (plugin)
@@ -44,20 +44,22 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 
 ## `Agent` wrapper
 
-- [ ] Register `Agent(subagent_type, prompt)` delegating to `subagent` via `ctx.executeTool`.
-- [ ] Hide `subagent` from the model via `prepareLoadout` `hiddenDeclarations`.
-- [ ] Remove the roster: `delete event.systemPromptOptions.sections.subagents`.
-- [ ] Detect child failure and return a typed failure (not `isError:false`).
+- [x] Register `Agent(subagent_type, prompt)` delegating to `subagent` via `ctx.executeTool`.
+- [x] Hide `subagent` from the model via `prepareLoadout` `hiddenDeclarations`.
+- [x] Rewrite the roster, do not delete it: pi-code's `subagents` section names the hidden `subagent` tool and `{agent, task}`. Our `before_agent_start` handler (runs after pi-code's) replaces the intro with `Agent({subagent_type, prompt})` wording and keeps the agent list. Order and wording coupling to pi-code: check in the live E2E test. Unit-tested only; live check pending.
+- [x] Detect child failure and return a typed failure (not `isError:false`): `Agent` calls `classify` and returns `Agent failed (<kind>): <detail>` with `isError:true` (unit-tested; real pi-code contract test is under Ship).
 
 ## Typed reply
 
 - [ ] Generate `submit_<role>` tools from `role_envelope_schemas.json`.
 - [ ] Register them only when `PI_CODE_SUBAGENT` is set.
 - [ ] No valid submit after one nudge: typed failure. No prose parsing.
+- [ ] A `partial` run (stopped at `maxTurns`; pi-code forces exit 0) is ok with `partial: true`, not a failure (same as pi-code, which documents it as Claude's behavior; accepted as is). With no valid submit it is a typed failure at once: the child was killed, so no nudge is possible.
 - [ ] Optional: wall-clock cap (unmeasured).
 
 ## Ship
 
 - [ ] End-to-end test: install, `Agent` call to one role, valid envelope returned, uninstall cleanly.
 - [ ] Failure-path test: invalid or missing submit yields a typed failure.
+- [ ] Contract test against real pi-code (`NWAVE_PI_E2E`): drive `subagent` and assert the `classify` kind for (1) an unknown agent, (2) a child that errors with a nonzero exit, (3) a `maxTurns`-capped child (`partial: true`, ok). `stopReason` and `partial` renames fail silently, so cases 2 and 3 matter most. Re-run whenever `pi_code_package.SOURCE` changes. See ADR 6.
 - [ ] Update `subagent-delegation-gaps.md` with live-run results.
