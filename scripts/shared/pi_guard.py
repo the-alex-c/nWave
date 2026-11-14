@@ -72,13 +72,13 @@ def remove(logger) -> None:
 
 
 def apply(options: PiOptions, logger, dry_run: bool) -> None:
-    """Level 1 removes the guard and rc block; level 2 installs them."""
-    if options.install_level < pi_options.MAX_LEVEL:
+    """Level 1 removes the guard and rc block; levels 2 and up install them."""
+    if options.install_level < pi_options.GUARD_LEVEL:
         if not dry_run:
             remove(logger)
     else:
         if not dry_run:
-            pi_code_package.ensure(pi_config_dir(), logger)
+            pi_code_package.ensure(pi_config_dir(), logger, options.install_level)
         _print_wrapper_hint(logger)
         rc = _rc()
         if rc is not None and not dry_run:
@@ -87,7 +87,7 @@ def apply(options: PiOptions, logger, dry_run: bool) -> None:
 
 def check(options: PiOptions) -> tuple[list[str], list[str]]:
     """(errors, warnings) for the level being verified; a lowered level has nothing to check."""
-    if options.verify_level < pi_options.MAX_LEVEL:
+    if options.verify_level < pi_options.GUARD_LEVEL:
         return [], []
-    errors, warnings = pi_code_package.check(pi_config_dir())
+    errors, warnings = pi_code_package.check(pi_config_dir(), options.verify_level)
     return errors, warnings + _shell_rc_warnings(_rc(), bool(os.environ.get("CLAUDE_CONFIG_DIR")))

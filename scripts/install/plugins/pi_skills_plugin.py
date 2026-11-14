@@ -80,7 +80,7 @@ def _read_owned_manifest_strict(target_dir: Path) -> set[str]:
     safe = (
         isinstance(document, dict)
         and set(document) - {"level"} == {"installed_skills", "version"}
-        and document.get("level", pi_options.MAX_LEVEL) in pi_options.LEVELS
+        and document.get("level", pi_options.LEGACY_LEVEL) in pi_options.LEVELS
         and document.get("version") == "1.0"
         and isinstance(names, list)
         and all(_is_plain_skill_name(name) for name in names)

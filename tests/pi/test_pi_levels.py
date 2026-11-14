@@ -1,4 +1,4 @@
-"""Rung selection: level 1 = skills; level 2 (default) = level 1 + guard.
+"""Rung selection: level 1 = skills; level 2 = level 1 + guard; level 3 (default) = level 2 + delegation.
 
 Re-installing at a lower level removes everything the target level would not install.
 Level reaches the plugins as ``context.metadata["pi_level"]`` (absent = highest).
@@ -11,10 +11,13 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from tests.pi.conftest import PiBoth as PiSkillsPlugin
 
 from scripts.install.plugins.nwave_hooks_plugin import HooksPlugin
-from tests.pi.conftest import PiBoth as PiSkillsPlugin
 from scripts.shared import pi_code_package as pcp
+
+HOOKS = "extensions/hooks/index.ts"
+SUBAGENT = "extensions/subagent/index.ts"
 
 
 @pytest.fixture(autouse=True)
@@ -131,7 +134,7 @@ def test_reinstall_without_flag_returns_to_highest_level(
     assert _guard_present(pi_dir)
     assert (
         json.loads((pi_dir / "skills" / ".nwave-manifest.json").read_text())["level"]
-        == 2
+        == 3
     )
 
 
@@ -143,3 +146,55 @@ def test_manifest_without_level_is_trusted_as_level_2(pi_dir: Path, ctx: Any) ->
     path.write_text(json.dumps(manifest))
     assert _fresh_verify(ctx) == [True, True]
     _install(ctx, 2)
+
+
+def _extensions(pi_dir: Path) -> list[str] | None:
+    packages = json.loads((pi_dir / "settings.json").read_text()).get("packages", [])
+    entry = next((p for p in packages if pcp._source(p) == pcp.SOURCE), None)
+    return entry.get("extensions") if isinstance(entry, dict) else None
+
+
+def test_level_2_loads_hooks_only(pi_dir: Path, ctx: Any) -> None:
+    _install(ctx, 2)
+    assert _extensions(pi_dir) == [HOOKS]
+
+
+def test_level_3_loads_hooks_and_subagent(pi_dir: Path, ctx: Any) -> None:
+    _install(ctx, 3)
+    assert _extensions(pi_dir) == [HOOKS, SUBAGENT]
+
+
+def test_level_3_records_level_3_in_manifest(pi_dir: Path, ctx: Any) -> None:
+    _install(ctx, 3)
+    manifest = json.loads((pi_dir / "skills" / ".nwave-manifest.json").read_text())
+    assert manifest["level"] == 3
+
+
+def test_reinstall_3_to_2_narrows_filter(pi_dir: Path, ctx: Any) -> None:
+    _install(ctx, 3)
+    _install(ctx, 2)
+    assert _extensions(pi_dir) == [HOOKS]
+
+
+def test_reinstall_2_to_3_widens_filter(pi_dir: Path, ctx: Any) -> None:
+    _install(ctx, 2)
+    _install(ctx, 3)
+    assert _extensions(pi_dir) == [HOOKS, SUBAGENT]
+
+
+def test_reinstall_3_to_1_removes_pi_code(pi_dir: Path, ctx: Any) -> None:
+    _install(ctx, 3)
+    _install(ctx, 1)
+    assert _extensions(pi_dir) is None and not (pi_dir / pcp.MARKER).exists()
+
+
+def test_verify_at_recorded_level_3_demands_subagent(pi_dir: Path, ctx: Any) -> None:
+    _install(ctx, 3)
+    ctx.metadata.pop("pi_level")
+    assert HooksPlugin().verify(ctx).success
+    settings = pi_dir / "settings.json"
+    doc = json.loads(settings.read_text())
+    doc["packages"] = [{"source": pcp.SOURCE, "extensions": [HOOKS]}]
+    settings.write_text(json.dumps(doc))
+    skills: Any = PiSkillsPlugin()
+    assert not skills.verify(ctx).success

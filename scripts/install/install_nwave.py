@@ -2399,7 +2399,7 @@ _HOST_PLATFORMS: tuple[tuple[str, str, str], ...] = (
     ("copilot", "copilot", "hooks only"),
     ("omp", "omp", "agents, skills, /nw-* commands and the tool_call guard extension"),
     ("devin", "devin", "skills only"),
-    ("pi", "pi", "skills (level 1) and the PreToolUse guard (level 2, default)"),
+    ("pi", "pi", "skills (level 1), the PreToolUse guard (level 2) and delegation (level 3, default)"),
 )
 _PLATFORM_CHOICES: tuple[tuple[str, frozenset[str] | None, str], ...] = (
     ("auto", None, "detect installed hosts; refuses when none is found"),
@@ -2542,9 +2542,9 @@ def main():
     parser.add_argument(
         "--pi-level",
         type=int,
-        choices=[1, 2],
+        choices=[1, 2, 3],
         default=None,
-        help="pi: 1 = skills only, 2 = skills + guard (default: 2). Re-installing at a lower level removes the higher level's parts",
+        help="pi: 1 = skills only, 2 = skills + guard, 3 = skills + guard + delegation (default: 3). Re-installing at a lower level removes the higher level's parts",
     )
     # Retired (Ruling B): accepted only so that a run passing it is refused with
     # a WHAT/WHY/HOW report. Hidden from --help.

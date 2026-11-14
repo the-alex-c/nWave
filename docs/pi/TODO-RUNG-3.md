@@ -13,7 +13,7 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 
 ## Role registry (plugin)
 
-- [ ] Widen the rung 2 extension filter so pi-code's `subagent` extension is kept (hooks only today).
+- [x] Add level 3 (`--pi-level 3`, new default = highest level). `pi_code_package.filter_for(level)`: level 2 keeps hooks only, level 3 adds `extensions/subagent/index.ts`. Tests in `tests/pi/test_pi_levels.py`. Not yet verified against a live pi (`NWAVE_PI_E2E`).
 - [ ] Agents plugin modeled on `codex_agents_plugin.py`, sharing its helpers.
 - [ ] Generate `~/.pi/agent/agents/nw-*.md` from every role in `nWave/agents/`.
 - [ ] Role mapping:

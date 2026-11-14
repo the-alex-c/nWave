@@ -1,4 +1,4 @@
-"""pi install choices: the level (1 = skills, 2 = skills + guard) and the shell-rc answer."""
+"""pi install choices: the level (1 = skills, 2 = + guard, 3 = + delegation) and the shell-rc answer."""
 
 from __future__ import annotations
 
@@ -11,8 +11,12 @@ from scripts.shared.install_paths import pi_skills_dir
 
 ShellRc = Literal["yes", "no"]
 
-MAX_LEVEL = 2
-LEVELS = (1, MAX_LEVEL)
+MAX_LEVEL = 3
+LEVELS = (1, 2, MAX_LEVEL)
+GUARD_LEVEL = 2
+
+#: A manifest written before levels were recorded was a level 2 install.
+LEGACY_LEVEL = 2
 
 #: The skills manifest records the install level; this module owns that contract.
 MANIFEST_FILENAME = ".nwave-manifest.json"
@@ -22,7 +26,7 @@ MANIFEST_FILENAME = ".nwave-manifest.json"
 class PiOptions:
     """pi install choices, carried through ``InstallContext.metadata``.
 
-    ``level``: 1 = skills, 2 = skills + guard; None = not given on the command line.
+    ``level``: 1 = skills, 2 = + guard, 3 = + delegation; None = not given on the command line.
     ``shell_rc``: "yes" | "no" | None (ask on a TTY, else print only).
     """
 
@@ -38,7 +42,7 @@ class PiOptions:
 
     def guard_wanted(self, *, verifying: bool = False) -> bool:
         """Whether the PreToolUse guard is wanted at the level being installed or verified."""
-        return (self.verify_level if verifying else self.install_level) >= MAX_LEVEL
+        return (self.verify_level if verifying else self.install_level) >= GUARD_LEVEL
 
     @property
     def install_level(self) -> int:
@@ -51,9 +55,8 @@ class PiOptions:
         if self.level:
             return self.level
         try:
-            recorded = json.loads(
-                (pi_skills_dir() / MANIFEST_FILENAME).read_text(encoding="utf-8")
-            )["level"]
-        except (OSError, ValueError, KeyError, TypeError):
+            document = json.loads((pi_skills_dir() / MANIFEST_FILENAME).read_text(encoding="utf-8"))
+            recorded = document.get("level", LEGACY_LEVEL)
+        except (OSError, ValueError, AttributeError):
             return MAX_LEVEL
         return recorded if recorded in LEVELS else MAX_LEVEL
