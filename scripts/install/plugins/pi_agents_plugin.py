@@ -14,8 +14,9 @@ from scripts.install.plugins.base import (
     InstallContext,
     PluginResult,
 )
+from scripts.shared import pi_nwave_package
 from scripts.shared.agent_catalog import is_public_agent, load_public_agents
-from scripts.shared.install_paths import pi_agents_dir, pi_skills_dir
+from scripts.shared.install_paths import pi_agents_dir, pi_config_dir, pi_skills_dir
 from scripts.shared.pi_options import PiOptions
 from scripts.shared.pi_role_mapping import to_pi_role
 from scripts.shared.pi_role_validation import validate_roles
@@ -33,6 +34,12 @@ def _owned(target: Path) -> list[str]:
     except (OSError, ValueError, KeyError):
         return []
     return [n for n in names if isinstance(n, str) and Path(n).name == n]
+
+
+def _package_source(context: InstallContext) -> str:
+    """The pi-code-nwave directory: bundled in the wheel, else the checkout."""
+    bundled = context.framework_source / "pi-code-nwave"
+    return str(bundled if bundled.is_dir() else context.project_root / "pi-code-nwave")
 
 
 class PiAgentsPlugin(InstallationPlugin):
@@ -71,6 +78,7 @@ class PiAgentsPlugin(InstallationPlugin):
                 errors=foreign,
             )
         target.mkdir(parents=True, exist_ok=True)
+        pi_nwave_package.ensure(pi_config_dir(), context.logger, _package_source(context))
         for stale in owned - roles.keys():
             (target / f"{stale}.md").unlink(missing_ok=True)
         for name, text in roles.items():
@@ -100,14 +108,18 @@ class PiAgentsPlugin(InstallationPlugin):
         except (OSError, ValueError, KeyError):
             names = []
         missing = [n for n in names if not (pi_agents_dir() / f"{n}.md").is_file()]
+        errors = [f"missing: {n}" for n in missing] + pi_nwave_package.check(
+            pi_config_dir(), _package_source(context)
+        )
         return PluginResult(
-            success=bool(names) and not missing,
+            success=bool(names) and not errors,
             plugin_name=self.name,
             message="pi agents verified",
-            errors=[f"missing: {n}" for n in missing],
+            errors=errors,
         )
 
     def uninstall(self, context: InstallContext) -> PluginResult:
+        pi_nwave_package.remove(pi_config_dir(), context.logger)
         target = pi_agents_dir()
         manifest = target / _MANIFEST_FILENAME
         try:
