@@ -32,7 +32,7 @@ const childOk = (text: string) => outcome(text)
 
 const toolCtx = (executeTool: ExecuteTool) => ({ executeTool }) as unknown as ExtensionToolContext
 
-function run(executeTool: ExecuteTool, params = { subagent_type: 'nw-x', prompt: 'go' }) {
+function run(executeTool: ExecuteTool, params = { subagent_type: 'explore', prompt: 'go' }) {
   const { agent } = load()
   if (!agent) throw new Error('Agent tool not registered')
   return agent.execute('id1', params, undefined, undefined, toolCtx(executeTool))
@@ -69,7 +69,7 @@ describe('Agent extension', () => {
     it('should call subagent with subagent_type as agent and prompt as task', async () => {
       const executeTool = vi.fn(async () => childOk('PONG'))
       await run(executeTool as unknown as ExecuteTool)
-      expect(executeTool).toHaveBeenCalledWith('subagent', { agent: 'nw-x', task: 'go' }, expect.anything())
+      expect(executeTool).toHaveBeenCalledWith('subagent', { agent: 'explore', task: 'go' }, expect.anything())
     })
 
     it('should pass the abort signal through to subagent', async () => {
@@ -111,6 +111,73 @@ describe('Agent extension', () => {
 
     it('should start the text the model sees with the failure kind and carry the detail', async () => {
       expect(((await run(unknown)).content[0] as { text: string }).text).toMatch(/^Agent failed \(subagent\): .*Unknown agent/)
+    })
+  })
+
+  describe('typed reply from an nw role', () => {
+    const call = (name: string, id: string, args: object) => ({ type: 'toolCall', id, name, arguments: args })
+    const assistant = (...content: object[]) => ({ role: 'assistant', content })
+    const toolResult = (toolCallId: string, isError = false) => ({ role: 'toolResult', toolCallId, isError })
+    const envelope = { outcome: 'accepted', diagnostic: '' }
+    const withMessages = (messages: object[], over: object = {}) => async () =>
+      outcome('', { results: [{ exitCode: 0, stopReason: 'stop', messages, ...over }] })
+    const nw = (executeTool: ExecuteTool) => run(executeTool, { subagent_type: 'nw-x', prompt: 'go' })
+    const text = (r: { content: object[] }) => (r.content[0] as { text: string }).text
+
+    it('should return the submitted envelope as the reply text and in details', async () => {
+      const r = await nw(withMessages([assistant(call('submit_nw_x', 'a', envelope)), toolResult('a')]))
+      expect(r.isError).toBeFalsy()
+      expect(JSON.parse(text(r))).toEqual(envelope)
+      expect(r.details).toMatchObject({ envelope })
+    })
+
+    it('should use the last valid submit when the model submitted twice', async () => {
+      const second = { outcome: 'rejected', diagnostic: 'why' }
+      const r = await nw(
+        withMessages([assistant(call('submit_nw_x', 'a', envelope)), toolResult('a'), assistant(call('submit_nw_x', 'b', second)), toolResult('b')]),
+      )
+      expect(JSON.parse(text(r))).toEqual(second)
+    })
+
+    it('should ignore a submit pi rejected as invalid', async () => {
+      const bad = { outcome: 'rejected', diagnostic: '' }
+      const r = await nw(
+        withMessages([assistant(call('submit_nw_x', 'a', envelope)), toolResult('a'), assistant(call('submit_nw_x', 'b', bad)), toolResult('b', true)]),
+      )
+      expect(JSON.parse(text(r))).toEqual(envelope)
+    })
+
+    it('should fail with kind envelope when the child answered in prose only', async () => {
+      const r = await nw(withMessages([assistant({ type: 'text', text: 'done' })]))
+      expect(r.isError).toBe(true)
+      expect(text(r)).toMatch(/^Agent failed \(envelope\): /)
+    })
+
+    it('should fail with kind envelope when every submit was invalid', async () => {
+      const r = await nw(withMessages([assistant(call('submit_nw_x', 'a', {})), toolResult('a', true)]))
+      expect(text(r)).toMatch(/^Agent failed \(envelope\): /)
+    })
+
+    it('should ignore a submit tool of another role', async () => {
+      const r = await nw(withMessages([assistant(call('submit_nw_other', 'a', envelope)), toolResult('a')]))
+      expect(text(r)).toMatch(/^Agent failed \(envelope\): /)
+    })
+
+    it('should accept a maxTurns-capped child that submitted, marked partial', async () => {
+      const r = await nw(withMessages([assistant(call('submit_nw_x', 'a', envelope)), toolResult('a')], { partial: true }))
+      expect(r.isError).toBeFalsy()
+      expect(r.details).toMatchObject({ envelope, partial: true })
+    })
+
+    it('should fail a maxTurns-capped child that never submitted', async () => {
+      const r = await nw(withMessages([assistant({ type: 'text', text: 'cut off' })], { partial: true }))
+      expect(text(r)).toMatch(/^Agent failed \(envelope\): /)
+    })
+
+    it('should not demand an envelope from a non-nw agent', async () => {
+      const r = await run(async () => childOk('plain'))
+      expect(r.isError).toBeFalsy()
+      expect(text(r)).toBe('plain')
     })
   })
 

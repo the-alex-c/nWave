@@ -16,10 +16,12 @@ export default function agentExtension(pi: ExtensionAPI): void {
     parameters: Type.Object({ subagent_type: Type.String(), prompt: Type.String() }),
     prepareLoadout: () => ({ hiddenDeclarations: ['subagent'] }),
     async execute(_id, { subagent_type, prompt }, signal, _u, ctx) {
-      const out = classify(await ctx.executeTool('subagent', { agent: subagent_type, task: prompt }, { signal }))
+      const submitTool = subagent_type.startsWith('nw-') ? 'submit_' + subagent_type.replaceAll('-', '_') : undefined
+      const out = classify(await ctx.executeTool('subagent', { agent: subagent_type, task: prompt }, { signal }), submitTool)
       if (!out.ok) return { isError: true, content: [{ type: 'text', text: `Agent failed (${out.kind}): ${out.detail}` }], details: undefined }
       const content = [{ type: 'text' as const, text: out.text }]
-      return out.partial ? { content, details: { partial: true } } : { content, details: undefined }
+      const details = { ...(out.envelope !== undefined && { envelope: out.envelope }), ...(out.partial && { partial: true }) }
+      return { content, details: Object.keys(details).length ? details : undefined }
     },
   })
 
