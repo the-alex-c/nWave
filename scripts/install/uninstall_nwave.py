@@ -1709,10 +1709,12 @@ class NWaveUninstaller:
 
         try:
             from scripts.install.plugins.base import InstallContext
+            from scripts.install.plugins.pi_agents_plugin import PiAgentsPlugin
             from scripts.install.plugins.pi_guard_plugin import PiGuardPlugin
             from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
         except ImportError:
             from plugins.base import InstallContext
+            from plugins.pi_agents_plugin import PiAgentsPlugin
             from plugins.pi_guard_plugin import PiGuardPlugin
             from plugins.pi_skills_plugin import PiSkillsPlugin
 
@@ -1724,6 +1726,7 @@ class NWaveUninstaller:
         )
         results = [
             PiGuardPlugin().uninstall(context),
+            PiAgentsPlugin().uninstall(context),
             PiSkillsPlugin().uninstall(context),
         ]
         result = next((r for r in results if not r.success), results[-1])

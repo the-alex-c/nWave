@@ -218,6 +218,7 @@ try:
     from scripts.install.plugins.opencode_agents_plugin import OpenCodeAgentsPlugin
     from scripts.install.plugins.opencode_commands_plugin import OpenCodeCommandsPlugin
     from scripts.install.plugins.opencode_skills_plugin import OpenCodeSkillsPlugin
+    from scripts.install.plugins.pi_agents_plugin import PiAgentsPlugin
     from scripts.install.plugins.pi_guard_plugin import PiGuardPlugin
     from scripts.install.plugins.pi_skills_plugin import PiSkillsPlugin
     from scripts.install.plugins.registry import PluginRegistry
@@ -277,6 +278,7 @@ except ImportError:
     from plugins.opencode_agents_plugin import OpenCodeAgentsPlugin
     from plugins.opencode_commands_plugin import OpenCodeCommandsPlugin
     from plugins.opencode_skills_plugin import OpenCodeSkillsPlugin
+    from plugins.pi_agents_plugin import PiAgentsPlugin
     from plugins.pi_guard_plugin import PiGuardPlugin
     from plugins.pi_skills_plugin import PiSkillsPlugin
     from plugins.registry import PluginRegistry
@@ -1625,6 +1627,7 @@ class NWaveInstaller:
         if target_platforms and "pi" in target_platforms:
             registry.register(PiGuardPlugin())
             registry.register(PiSkillsPlugin())
+            registry.register(PiAgentsPlugin())
         registry.register(NwdesPlugin())
         if self.dev_mode and not self.dry_run:
             registry.register(DevLaunchersPlugin())

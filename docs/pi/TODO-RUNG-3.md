@@ -15,7 +15,7 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 
 - [x] Add level 3 (`--pi-level 3`, new default = highest level). `pi_code_package.filter_for(level)`: level 2 keeps hooks only, level 3 adds `extensions/subagent/index.ts`. Tests in `tests/pi/test_pi_levels.py`. Not yet verified against a live pi (`NWAVE_PI_E2E`).
 - [ ] Agents plugin modeled on `codex_agents_plugin.py`, sharing its helpers.
-- [ ] Generate `~/.pi/agent/agents/nw-*.md` from every role in `nWave/agents/`.
+- [x] Generate `~/.pi/agent/agents/nw-*.md` from every public role in `nWave/agents/` (`PiAgentsPlugin`, `scripts/install/plugins/pi_agents_plugin.py`; wired into install, verify, uninstall; tests `test_pi_agents_plugin.py`, `test_pi_agents_wiring.py`). Runs at every level until the gate below lands.
 - [x] Role mapping: `scripts/shared/pi_role_mapping.py`, `to_pi_role(name, text) -> (text, reports)`. Decisions: [adr-pi-role-tool-mapping.md](research/rung-3/adr-pi-role-tool-mapping.md); evidence: [role-tool-mapping-issues.md](research/rung-3/role-tool-mapping-issues.md). All 37 roles map and validate. Tests in `tests/pi/test_pi_role_mapping.py`.
   - drop `SendMessage` and `model`
   - keep `maxTurns`
@@ -27,7 +27,7 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
   - `WebFetch`/`WebSearch` become `web_fetch`/`web_search`; level 3 filter keeps `extensions/web.ts` (not yet verified live: U1)
   - scoped grants and unmapped tools dropped and reported, never widened
 - [ ] Gate the plugin on the delegation extension being installed, not on a rung.
-- [ ] Manifest-owned files, removed on uninstall. Idempotent install.
+- [x] Manifest-owned files, removed on uninstall. Idempotent install. Also prunes owned roles dropped from the source and refuses foreign `nw-*.md` files.
 
 ## Validation (all-or-nothing)
 
@@ -38,7 +38,7 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 - [ ] Check pi-code lists the agent (planned: E2E test, not install time).
 - [ ] Report prompt size per role (`prompt_chars` returned; warn on large not yet; no cap).
 - [x] List all failures at once.
-- [ ] Leave target untouched on any failure (needs the generator).
+- [x] Leave target untouched on any failure.
 - [x] Map or drop Claude tools `Task`, `Skill`, `WebFetch`, `WebSearch`: decided in the ADR above; the validator accepts `subagent`, `web_fetch`, `web_search`.
 - [x] Run the same check as a test over every role (`tests/pi/test_pi_all_roles.py`; skills resolved against `nWave/skills`).
 
