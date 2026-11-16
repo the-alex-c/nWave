@@ -7,6 +7,7 @@ any failure writes nothing. Written names are recorded in a manifest.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from scripts.install.plugins.base import (
     InstallationPlugin,
@@ -69,4 +70,27 @@ class PiAgentsPlugin(InstallationPlugin):
             plugin_name=self.name,
             message="pi agents verified",
             errors=[f"missing: {n}" for n in missing],
+        )
+
+    def uninstall(self, context: InstallContext) -> PluginResult:
+        target = pi_agents_dir()
+        manifest = target / _MANIFEST_FILENAME
+        try:
+            names = json.loads(manifest.read_text(encoding="utf-8"))["installed_agents"]
+        except (OSError, ValueError, KeyError):
+            return PluginResult(
+                success=True,
+                plugin_name=self.name,
+                message="No pi agents to uninstall (no manifest found)",
+            )
+        for n in names:
+            if Path(n).name == n:
+                (target / f"{n}.md").unlink(missing_ok=True)
+        manifest.unlink()
+        if not any(target.iterdir()):
+            target.rmdir()
+        return PluginResult(
+            success=True,
+            plugin_name=self.name,
+            message=f"pi agents uninstalled ({len(names)} removed)",
         )
