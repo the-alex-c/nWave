@@ -87,3 +87,38 @@ def test_foreign_role_file_is_refused_and_untouched(
     assert not result.success
     assert foreign.read_text() == "user's own"
     assert [p.name for p in foreign.parent.iterdir()] == [foreign.name]
+
+
+def _agents_at(ctx: InstallContext, level: int) -> None:
+    ctx.metadata["pi_level"] = level
+    assert PiSkillsPlugin().install(ctx).success
+    assert plugin.PiAgentsPlugin().install(ctx).success
+
+
+def test_below_level_3_installs_no_agents(pi_dir: Path, ctx: InstallContext) -> None:
+    _agents_at(ctx, 2)
+    assert not (pi_dir / "agents").exists()
+
+
+def test_reinstall_at_level_2_removes_owned_agents_keeps_users(
+    pi_dir: Path, ctx: InstallContext
+) -> None:
+    _agents_at(ctx, 3)
+    (pi_dir / "agents" / "my-own.md").write_text("mine")
+    _agents_at(ctx, 2)
+    assert [p.name for p in (pi_dir / "agents").iterdir()] == ["my-own.md"]
+
+
+def test_verify_below_level_3_does_not_demand_agents(
+    pi_dir: Path, ctx: InstallContext
+) -> None:
+    _agents_at(ctx, 2)
+    ctx.metadata.pop("pi_level")
+    assert plugin.PiAgentsPlugin().verify(ctx).success
+
+
+def test_verify_at_level_3_demands_agents(pi_dir: Path, ctx: InstallContext) -> None:
+    _agents_at(ctx, 3)
+    ctx.metadata.pop("pi_level")
+    (pi_dir / "agents" / "nw-acceptance-designer.md").unlink()
+    assert not plugin.PiAgentsPlugin().verify(ctx).success

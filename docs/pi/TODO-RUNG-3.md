@@ -14,8 +14,8 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 ## Role registry (plugin)
 
 - [x] Add level 3 (`--pi-level 3`, new default = highest level). `pi_code_package.filter_for(level)`: level 2 keeps hooks only, level 3 adds `extensions/subagent/index.ts`. Tests in `tests/pi/test_pi_levels.py`. Not yet verified against a live pi (`NWAVE_PI_E2E`).
-- [ ] Agents plugin modeled on `codex_agents_plugin.py`, sharing its helpers.
-- [x] Generate `~/.pi/agent/agents/nw-*.md` from every public role in `nWave/agents/` (`PiAgentsPlugin`, `scripts/install/plugins/pi_agents_plugin.py`; wired into install, verify, uninstall; tests `test_pi_agents_plugin.py`, `test_pi_agents_wiring.py`). Runs at every level until the gate below lands.
+- [x] Agents plugin `PiAgentsPlugin`. Does not share `codex_agents_plugin.py` helpers (YAGNI).
+- [x] Generate `~/.pi/agent/agents/nw-*.md` from every public role in `nWave/agents/` (`PiAgentsPlugin`, `scripts/install/plugins/pi_agents_plugin.py`; wired into install, verify, uninstall; tests `test_pi_agents_plugin.py`, `test_pi_agents_wiring.py`).
 - [x] Role mapping: `scripts/shared/pi_role_mapping.py`, `to_pi_role(name, text) -> (text, reports)`. Decisions: [adr-pi-role-tool-mapping.md](research/rung-3/adr-pi-role-tool-mapping.md); evidence: [role-tool-mapping-issues.md](research/rung-3/role-tool-mapping-issues.md). All 37 roles map and validate. Tests in `tests/pi/test_pi_role_mapping.py`.
   - drop `SendMessage` and `model`
   - keep `maxTurns`
@@ -26,7 +26,7 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
   - `Task`/`Agent` become `subagent` (`DELEGATION_TOOL`); becomes `Agent` when the wrapper lands
   - `WebFetch`/`WebSearch` become `web_fetch`/`web_search`; level 3 filter keeps `extensions/web.ts` (not yet verified live: U1)
   - scoped grants and unmapped tools dropped and reported, never widened
-- [ ] Gate the plugin on the delegation extension being installed, not on a rung.
+- [x] Gate the plugin on delegation: installs only at level 3 (`PiOptions.delegation_wanted`), the level that loads the `subagent` extension. Not a direct extension-list check.
 - [x] Manifest-owned files, removed on uninstall. Idempotent install. Also prunes owned roles dropped from the source and refuses foreign `nw-*.md` files.
 
 ## Validation (all-or-nothing)

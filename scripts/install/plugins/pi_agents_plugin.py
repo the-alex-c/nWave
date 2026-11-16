@@ -16,6 +16,7 @@ from scripts.install.plugins.base import (
 )
 from scripts.shared.agent_catalog import is_public_agent, load_public_agents
 from scripts.shared.install_paths import pi_agents_dir, pi_skills_dir
+from scripts.shared.pi_options import PiOptions
 from scripts.shared.pi_role_mapping import to_pi_role
 from scripts.shared.pi_role_validation import validate_roles
 
@@ -39,6 +40,8 @@ class PiAgentsPlugin(InstallationPlugin):
         super().__init__(name="pi-agents", priority=38)
 
     def install(self, context: InstallContext) -> PluginResult:
+        if not PiOptions.from_metadata(context.metadata).delegation_wanted():
+            return self.uninstall(context)
         public = load_public_agents(context.project_root / "nWave")
         roles = {
             p.stem: to_pi_role(p.stem, p.read_text(encoding="utf-8"))[0]
@@ -85,6 +88,12 @@ class PiAgentsPlugin(InstallationPlugin):
         )
 
     def verify(self, context: InstallContext) -> PluginResult:
+        if not PiOptions.from_metadata(context.metadata).delegation_wanted(
+            verifying=True
+        ):
+            return PluginResult(
+                success=True, plugin_name=self.name, message="pi agents not wanted"
+            )
         manifest = pi_agents_dir() / _MANIFEST_FILENAME
         try:
             names = json.loads(manifest.read_text(encoding="utf-8"))["installed_agents"]
