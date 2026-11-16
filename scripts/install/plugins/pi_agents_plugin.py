@@ -23,6 +23,17 @@ from scripts.shared.pi_role_validation import validate_roles
 _MANIFEST_FILENAME = ".nwave-agents-manifest.json"
 
 
+def _owned(target: Path) -> list[str]:
+    """Plain names the previous install recorded; empty when no trusted manifest."""
+    try:
+        names = json.loads((target / _MANIFEST_FILENAME).read_text(encoding="utf-8"))[
+            "installed_agents"
+        ]
+    except (OSError, ValueError, KeyError):
+        return []
+    return [n for n in names if isinstance(n, str) and Path(n).name == n]
+
+
 class PiAgentsPlugin(InstallationPlugin):
     def __init__(self) -> None:
         super().__init__(name="pi-agents", priority=38)
@@ -43,7 +54,22 @@ class PiAgentsPlugin(InstallationPlugin):
                 errors=errors,
             )
         target = pi_agents_dir()
+        owned = set(_owned(target))
+        foreign = [
+            f"foreign pi agent file: {target / f'{n}.md'}"
+            for n in roles
+            if (target / f"{n}.md").exists() and n not in owned
+        ]
+        if foreign:
+            return PluginResult(
+                success=False,
+                plugin_name=self.name,
+                message="pi agent collision",
+                errors=foreign,
+            )
         target.mkdir(parents=True, exist_ok=True)
+        for stale in owned - roles.keys():
+            (target / f"{stale}.md").unlink(missing_ok=True)
         for name, text in roles.items():
             (target / f"{name}.md").write_text(text, encoding="utf-8")
         (target / _MANIFEST_FILENAME).write_text(
