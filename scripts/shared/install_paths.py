@@ -265,6 +265,11 @@ def pi_config_dir() -> Path:
     return Path(override) if override else Path.home() / ".pi" / "agent"
 
 
+def pi_agents_dir() -> Path:
+    """Return pi's global agents directory."""
+    return pi_config_dir() / "agents"
+
+
 def pi_skills_dir() -> Path:
     """Return pi's global skills directory."""
     return pi_config_dir() / "skills"
