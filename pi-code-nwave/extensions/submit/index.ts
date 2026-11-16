@@ -6,7 +6,7 @@ import { join } from 'node:path'
 
 import type { ExtensionAPI } from '@earendil-works/pi-coding-agent'
 
-import schemas from '../../../nwave_ai/platform/role_envelope_schemas.json' with { type: 'json' }
+import schemas from '../../role_envelope_schemas.json' with { type: 'json' }
 
 export type SubmitOptions = { child?: boolean; agentsDir?: string }
 

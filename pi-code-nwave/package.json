@@ -11,5 +11,11 @@
     "typebox": "^1.4.7",
     "typescript": "^5.9.0",
     "vitest": "^3.2.0"
+  },
+  "pi": {
+    "extensions": [
+      "./extensions/agent/index.ts",
+      "./extensions/submit/index.ts"
+    ]
   }
 }

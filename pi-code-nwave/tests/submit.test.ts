@@ -6,7 +6,7 @@ import type { ExtensionAPI, ToolDefinition } from '@earendil-works/pi-coding-age
 import { Value } from 'typebox/value'
 import { describe, expect, it } from 'vitest'
 
-import schemas from '../../nwave_ai/platform/role_envelope_schemas.json' with { type: 'json' }
+import schemas from '../role_envelope_schemas.json' with { type: 'json' }
 import submitExtension from '../extensions/submit/index.ts'
 
 const FLOOR = (schemas as Record<string, unknown>)['nw-acceptance-designer']
