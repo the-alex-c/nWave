@@ -5,7 +5,7 @@ PLATFORM ?= pi
 test: test-py test-js
 
 test-py:
-	uv run --extra test pytest tests $(ARGS)
+	uv run --extra test pytest tests -n auto $(ARGS)
 
 test-js:
 	cd pi-code-nwave && npm install --no-audit --no-fund && npx vitest run $(ARGS)

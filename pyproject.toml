@@ -279,6 +279,7 @@ norecursedirs = [
     "target",
 ]
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 # Default CI covers the active shipped runtime and every shipped package.
