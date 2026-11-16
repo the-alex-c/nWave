@@ -40,7 +40,7 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 - [x] List all failures at once.
 - [ ] Leave target untouched on any failure (needs the generator).
 - [x] Map or drop Claude tools `Task`, `Skill`, `WebFetch`, `WebSearch`: decided in the ADR above; the validator accepts `subagent`, `web_fetch`, `web_search`.
-- [ ] Run the same check as a test over every role.
+- [x] Run the same check as a test over every role (`tests/pi/test_pi_all_roles.py`; skills resolved against `nWave/skills`).
 
 ## `Agent` wrapper
 
