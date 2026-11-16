@@ -51,8 +51,8 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 
 ## Typed reply
 
-- [ ] Generate `submit_<role>` tools from `role_envelope_schemas.json`.
-- [ ] Register them only when `PI_CODE_SUBAGENT` is set.
+- [x] Generate `submit_<role>` tools from `role_envelope_schemas.json`: `pi-code-nwave/extensions/submit/index.ts`. One tool per installed `nw-*.md`; covered roles get their own schema, all others the floor schema (as Codex). Imports the repo JSON by relative path, so the package cannot ship alone yet. Not yet loaded by pi: the installer does not install `pi-code-nwave`.
+- [x] Register them only when `PI_CODE_SUBAGENT` is set (unit-tested; live check pending).
 - [ ] No valid submit after one nudge: typed failure. No prose parsing.
 - [ ] A `partial` run (stopped at `maxTurns`; pi-code forces exit 0) is ok with `partial: true`, not a failure (same as pi-code, which documents it as Claude's behavior; accepted as is). With no valid submit it is a typed failure at once: the child was killed, so no nudge is possible.
 - [ ] Optional: wall-clock cap (unmeasured).
