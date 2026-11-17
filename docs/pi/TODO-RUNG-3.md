@@ -59,7 +59,9 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 
 ## Ship
 
-- [ ] End-to-end test: install, `Agent` call to one role, valid envelope returned, uninstall cleanly.
-- [ ] Failure-path test: invalid or missing submit yields a typed failure.
-- [ ] Contract test against real pi-code (`NWAVE_PI_E2E`): drive `subagent` and assert the `classify` kind for (1) an unknown agent, (2) a child that errors with a nonzero exit, (3) a `maxTurns`-capped child (`partial: true`, ok). `stopReason` and `partial` renames fail silently, so cases 2 and 3 matter most. Re-run whenever `pi_code_package.SOURCE` changes. See ADR 6.
-- [ ] Update `subagent-delegation-gaps.md` with live-run results.
+- [x] End-to-end test: `tests/pi/test_pi_delegation_real_pi.py::test_role_returns_a_valid_envelope_then_uninstalls_cleanly` (`NWAVE_PI_E2E=1`; real pi 1.4.0, pi-code 1.7.0, haiku-4-5). Install at level 3, `Agent` to `nw-troubleshooter`, valid envelope in `details.envelope`, uninstall removes agents and the package entry. One run, not repeated for flakiness.
+- [x] Failure-path test: `nw-*` agent with no submit tool gives `Agent failed (envelope)`; unlaunchable model gives `Agent failed (subagent)`; API-error child gives `stop`/`exit`. Live-verified.
+- [x] Contract test against real pi-code: unknown agent -> `subagent` (`isError:true` from `Agent`); maxTurns child -> ok, `details.partial:true`; API-error child -> `stop` (the `stopReason` field is live-confirmed). Not exercised: a true nonzero `exitCode` (pi-code surfaces launch errors as `Agent failed:` text first); the `stop` case depends on `claude-opus-4-8` answering 404, swap if that changes. Message shapes: `toolCall`/`toolCallId` confirmed by the envelope test; `toolResult.isError` (rejected submit) not exercised live. Re-run when `pi_code_package.SOURCE` changes.
+- [x] Update `subagent-delegation-gaps.md` with live-run results.
+- [x] Live checks: an installed `pi-code-nwave` copy without `node_modules` loads (typebox and pi packages come from pi); `submit` finds `$PI_CODING_AGENT_DIR/agents`; level-3 filter keeps `extensions/web.ts`; `Agent` and `submit_*` both work (child sees `submit_*`). pi-code's roster intro text in 1.7.0 matches `PI_CODE_INTRO` (source grep); the rewrite is not asserted live. Local-path entry is stored relative in `settings.json` and works.
+- [x] Wheel built once: `nWave/pi-code-nwave/` has 5 files (extensions, package.json, schemas), no `node_modules`, no tests.

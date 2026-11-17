@@ -64,3 +64,11 @@ Sources: [subagent-delegation.md](subagent-delegation.md), [subagent-delegation-
 Items 1 and 2 DONE: wrapper path verified ([agent-wrapper-mechanics.md](agent-wrapper-mechanics.md) "Run results") and chosen. Next: build the `Agent` wrapper (param mapping incl. `max_turns`, failure detection, `submit_<role>` envelope extraction, nested-hook allowance).
 
 (old plan) Item 2: throwaway extension registering `Agent` that calls `subagent` via `ctx.executeTool`. Run on pi 1.4.0 in an isolated `PI_CODING_AGENT_DIR`. No model calls. Outcome picks wrapper or own spawn.
+
+## Live-run results (pi 1.4.0, pi-code 1.7.0, haiku-4-5; `tests/pi/test_pi_delegation_real_pi.py`)
+
+- Real install at level 3, `Agent` driven through `pi --mode json -p`: unknown agent -> `Agent failed (subagent)`; no submit on an `nw-*` agent -> `Agent failed (envelope)`; maxTurns 1 -> ok with `details.partial: true`; valid role call -> `details.envelope`.
+- A child with `model: inherit` runs on pi's default model, not the parent's `--model` (in a clean config it was `claude-opus-4-8`, API 404 -> `Agent failed (stop)`). The test sets `CLAUDE_CODE_SUBAGENT_MODEL`.
+- A model pi cannot resolve is reported by pi-code as `Agent failed:` text (kind `subagent`), not as a nonzero exit. A true nonzero `exitCode` was not reproduced.
+- Package without `node_modules` loads; `typebox` resolves from pi.
+- Rejected-submit `toolResult.isError` shape: not exercised live.
