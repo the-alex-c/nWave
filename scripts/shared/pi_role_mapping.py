@@ -37,6 +37,11 @@ _MAP = {**{pi: pi for pi in (*_TOOL_TABLE.values(), "ls")}, **_TOOL_TABLE}
 _SKILL_INVOKE = re.compile(r"Invoke (?:ONE )?Skill\(([A-Za-z0-9][A-Za-z0-9._-]*)\)")
 
 
+def submit_tool(role: str) -> str:
+    """The typed-reply tool a role answers through."""
+    return "submit_" + role.replace("-", "_")
+
+
 def _entries(declared: object) -> list[str]:
     if isinstance(declared, str):
         return [e.strip() for e in split_declared_tools(declared) if e.strip()]
@@ -46,7 +51,7 @@ def _entries(declared: object) -> list[str]:
 
 
 def _map_tools(name: str, declared: object) -> tuple[list[str], list[str]]:
-    submit = "submit_" + name.replace("-", "_")
+    submit = submit_tool(name)
     mapped: list[str] = []
     reports: list[str] = []
     for entry in _entries(declared):

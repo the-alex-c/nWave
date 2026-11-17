@@ -17,7 +17,7 @@ PKG = str(Path(__file__).resolve().parents[2] / "pi-code-nwave")
 def _packages(pi_dir: Path) -> list[str]:
     settings = pi_dir / "settings.json"
     doc = json.loads(settings.read_text()) if settings.is_file() else {}
-    sources = (pcp._source(p) for p in doc.get("packages", []))
+    sources = (pcp.entry_source(p) for p in doc.get("packages", []))
     return [s for s in sources if s is not None]
 
 

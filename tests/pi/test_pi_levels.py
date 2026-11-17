@@ -152,7 +152,7 @@ def test_manifest_without_level_is_trusted_as_level_2(pi_dir: Path, ctx: Any) ->
 
 def _extensions(pi_dir: Path) -> list[str] | None:
     packages = json.loads((pi_dir / "settings.json").read_text()).get("packages", [])
-    entry = next((p for p in packages if pcp._source(p) == pcp.SOURCE), None)
+    entry = next((p for p in packages if pcp.entry_source(p) == pcp.SOURCE), None)
     return entry.get("extensions") if isinstance(entry, dict) else None
 
 

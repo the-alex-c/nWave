@@ -16,7 +16,9 @@ from __future__ import annotations
 
 import json
 import shutil
+from contextlib import contextmanager
 from pathlib import Path
+from typing import TYPE_CHECKING
 from shutil import which as _which
 
 from scripts.install.plugins.base import (
@@ -37,7 +39,12 @@ from scripts.shared.skill_distribution import (
 )
 from scripts.shared import pi_options
 from scripts.shared.pi_options import PiOptions
+from scripts.shared.plain_name import is_plain_name
 from scripts.shared.skill_path_rewrite import rewrite_host_paths
+
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 _MANIFEST_FILENAME = pi_options.MANIFEST_FILENAME
@@ -83,7 +90,7 @@ def _read_owned_manifest_strict(target_dir: Path) -> set[str]:
         and document.get("level", pi_options.LEGACY_LEVEL) in pi_options.LEVELS
         and document.get("version") == "1.0"
         and isinstance(names, list)
-        and all(_is_plain_skill_name(name) for name in names)
+        and all(is_plain_name(name) for name in names)
         and len(names) == len(set(names))
     )
     if not safe:
@@ -102,18 +109,9 @@ def _write_manifest(target_dir: Path, installed_skill_names: list[str], level: i
     manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
 
 
-def _is_plain_skill_name(name: object) -> bool:
-    """True for one path segment that names a child, never '.' or '..'."""
-    return (
-        isinstance(name, str)
-        and name not in {"", ".", ".."}
-        and Path(name).name == name
-    )
-
-
 def _safe_owned_skill_dir(target_dir: Path, name: str) -> Path:
     """Validate a manifest-owned skill directory before replace/remove."""
-    if not _is_plain_skill_name(name):
+    if not is_plain_name(name):
         raise ValueError(f"unsafe pi skill name: {name!r}")
     if target_dir.is_symlink() or not target_dir.is_dir():
         raise ValueError(f"unsafe pi skills directory: {target_dir}")
@@ -151,6 +149,21 @@ def _owned_before_install(target_dir: Path, desired_names: set[str]) -> set[str]
         if existing.name not in desired_names and existing.name not in previous_owned:
             raise ValueError(f"{_FOREIGN_COLLISION}: {existing}")
     return previous_owned
+
+
+@contextmanager
+def _staging_dir(staging_root: Path) -> Iterator[Path]:
+    """A fresh staging dir, removed on exit; refuses a symlink or non-directory."""
+    if staging_root.is_symlink() or (
+        staging_root.exists() and not staging_root.is_dir()
+    ):
+        raise ValueError(f"unsafe pi staging directory: {staging_root}")
+    shutil.rmtree(staging_root, ignore_errors=True)
+    staging_root.mkdir(parents=True)
+    try:
+        yield staging_root
+    finally:
+        shutil.rmtree(staging_root, ignore_errors=True)
 
 
 def _stage(entries: list, staging_root: Path) -> None:
@@ -198,6 +211,14 @@ class PiSkillsPlugin(InstallationPlugin):
 
     def __init__(self) -> None:
         super().__init__(name="pi-skills", priority=37)
+
+    def _failed(self, what: str, error: Exception) -> PluginResult:
+        return PluginResult(
+            success=False,
+            plugin_name=self.name,
+            message=f"pi skills {what} failed: {error!s}",
+            errors=[str(error)],
+        )
 
     def validate_prerequisites(self, context: InstallContext) -> PluginResult:
         """Check whether pi is present; skip gracefully if not.
@@ -259,14 +280,7 @@ class PiSkillsPlugin(InstallationPlugin):
             # Stage every replacement outside the discovery root before any
             # target mutation: a copy/rewrite failure leaves the previous
             # install fully intact.
-            staging_root = target_dir.parent / ".nwave-skills-staging"
-            if staging_root.is_symlink() or (
-                staging_root.exists() and not staging_root.is_dir()
-            ):
-                raise ValueError(f"unsafe pi staging directory: {staging_root}")
-            shutil.rmtree(staging_root, ignore_errors=True)
-            staging_root.mkdir(parents=True)
-            try:
+            with _staging_dir(target_dir.parent / ".nwave-skills-staging") as staging_root:
                 _stage(entries, staging_root)
                 installed_names, installed_files = _swap(
                     entries,
@@ -280,8 +294,6 @@ class PiSkillsPlugin(InstallationPlugin):
                     installed_names,
                     PiOptions.from_metadata(context.metadata).install_level,
                 )
-            finally:
-                shutil.rmtree(staging_root, ignore_errors=True)
 
             context.logger.info(
                 f"  ✅ pi skills installed ({len(installed_names)} skills)"
@@ -296,12 +308,7 @@ class PiSkillsPlugin(InstallationPlugin):
             )
         except Exception as e:
             context.logger.error(f"  ❌ Failed to install pi skills: {e}")
-            return PluginResult(
-                success=False,
-                plugin_name=self.name,
-                message=f"pi skills installation failed: {e!s}",
-                errors=[str(e)],
-            )
+            return self._failed("installation", e)
 
     def uninstall(self, context: InstallContext) -> PluginResult:
         """Uninstall only manifest-owned pi skills; everything else stays."""
@@ -337,12 +344,7 @@ class PiSkillsPlugin(InstallationPlugin):
             )
         except Exception as e:
             context.logger.error(f"  ❌ Failed to uninstall pi skills: {e}")
-            return PluginResult(
-                success=False,
-                plugin_name=self.name,
-                message=f"pi skills uninstallation failed: {e!s}",
-                errors=[str(e)],
-            )
+            return self._failed("uninstallation", e)
 
     def verify(self, context: InstallContext) -> PluginResult:
         """Verify manifest-listed pi skill trees exist and are not symlinks."""
@@ -388,9 +390,4 @@ class PiSkillsPlugin(InstallationPlugin):
                 message=f"pi skills verified ({count} present)",
             )
         except Exception as e:
-            return PluginResult(
-                success=False,
-                plugin_name=self.name,
-                message=f"pi skills verification failed: {e!s}",
-                errors=[str(e)],
-            )
+            return self._failed("verification", e)

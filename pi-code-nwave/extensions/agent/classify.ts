@@ -7,7 +7,8 @@
 
 export type FailureKind = 'exit' | 'stop' | 'subagent' | 'tool' | 'empty' | 'envelope'
 
-export type Outcome = { ok: true; text: string; partial?: true; envelope?: unknown } | { ok: false; kind: FailureKind; detail: string }
+export type Reply = { ok: true; text: string; partial?: true; envelope?: unknown }
+export type Outcome = Reply | { ok: false; kind: FailureKind; detail: string }
 
 export interface ToolResult {
   isError: boolean
@@ -51,6 +52,8 @@ function submitted(messages: Message[], submitTool: string): { value: unknown } 
   return last && { value: last.arguments }
 }
 
+const flagPartial = (reply: Reply, child: Child): Outcome => (child.partial ? { ...reply, partial: true } : reply)
+
 // `submitTool`: when given, the child must have made a valid call to it; its arguments are the reply.
 export function classify({ isError, result }: ToolResult, submitTool?: string): Outcome {
   const text = result.content.map((c) => c.text ?? '').join('')
@@ -63,8 +66,7 @@ export function classify({ isError, result }: ToolResult, submitTool?: string): 
   if (submitTool) {
     const sub = submitted(child.messages ?? [], submitTool)
     if (!sub) return fail('envelope', `no valid ${submitTool} call`)
-    const reply = { ok: true as const, text: JSON.stringify(sub.value), envelope: sub.value }
-    return child.partial ? { ...reply, partial: true } : reply
+    return flagPartial({ ok: true, text: JSON.stringify(sub.value), envelope: sub.value }, child)
   }
-  return child.partial ? { ok: true, text, partial: true } : { ok: true, text }
+  return flagPartial({ ok: true, text }, child)
 }

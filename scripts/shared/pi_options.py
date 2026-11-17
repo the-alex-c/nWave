@@ -42,11 +42,14 @@ class PiOptions:
 
     def guard_wanted(self, *, verifying: bool = False) -> bool:
         """Whether the PreToolUse guard is wanted at the level being installed or verified."""
-        return (self.verify_level if verifying else self.install_level) >= GUARD_LEVEL
+        return self._level(verifying) >= GUARD_LEVEL
 
     def delegation_wanted(self, *, verifying: bool = False) -> bool:
         """Whether the delegation extension (and so the roles that need it) is wanted."""
-        return (self.verify_level if verifying else self.install_level) >= MAX_LEVEL
+        return self._level(verifying) >= MAX_LEVEL
+
+    def _level(self, verifying: bool) -> int:
+        return self.verify_level if verifying else self.install_level
 
     @property
     def install_level(self) -> int:

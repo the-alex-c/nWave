@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from scripts.shared import pi_code_package, pi_options
+from scripts.shared import pi_code_package
 from scripts.shared.install_paths import pi_config_dir
 from scripts.shared.pi_shell_rc import (
     FUNCTION,
@@ -73,21 +73,21 @@ def remove(logger) -> None:
 
 def apply(options: PiOptions, logger, dry_run: bool) -> None:
     """Level 1 removes the guard and rc block; levels 2 and up install them."""
-    if options.install_level < pi_options.GUARD_LEVEL:
+    if not options.guard_wanted():
         if not dry_run:
             remove(logger)
-    else:
-        if not dry_run:
-            pi_code_package.ensure(pi_config_dir(), logger, options.install_level)
-        _print_wrapper_hint(logger)
-        rc = _rc()
-        if rc is not None and not dry_run:
-            _offer_shell_rc(rc, options.shell_rc, sys.stdin.isatty(), logger)
+        return
+    if not dry_run:
+        pi_code_package.ensure(pi_config_dir(), logger, options.install_level)
+    _print_wrapper_hint(logger)
+    rc = _rc()
+    if rc is not None and not dry_run:
+        _offer_shell_rc(rc, options.shell_rc, sys.stdin.isatty(), logger)
 
 
 def check(options: PiOptions) -> tuple[list[str], list[str]]:
     """(errors, warnings) for the level being verified; a lowered level has nothing to check."""
-    if options.verify_level < pi_options.GUARD_LEVEL:
+    if not options.guard_wanted(verifying=True):
         return [], []
     errors, warnings = pi_code_package.check(pi_config_dir(), options.verify_level)
     return errors, warnings + _shell_rc_warnings(_rc(), bool(os.environ.get("CLAUDE_CONFIG_DIR")))

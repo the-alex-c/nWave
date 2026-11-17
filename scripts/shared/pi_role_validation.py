@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from scripts.shared.frontmatter import parse_frontmatter
-from scripts.shared.pi_role_mapping import DELEGATION_TOOL
+from scripts.shared.pi_role_mapping import DELEGATION_TOOL, submit_tool
 
 
 if TYPE_CHECKING:
@@ -46,8 +46,7 @@ def validate_role(name: str, text: str, skills_dir: Path) -> RoleReport:
     meta, body = parse_frontmatter(text)
     if meta is None:
         return RoleReport(["frontmatter does not parse"])
-    submit = "submit_" + name.replace("-", "_")
-    allowed = PI_BUILTINS | {submit}
+    allowed = PI_BUILTINS | {submit_tool(name)}
     errors = [
         f"tool not resolvable: {t}"
         for t in _names(meta.get("tools"))
