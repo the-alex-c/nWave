@@ -116,7 +116,7 @@ version resolution.
 
 - Whether `auto` should detect pi.
 - Persist the chosen level so standalone `verify` knows it.
-- Tool-ceiling enforcement, model inheritance and the session format for
+- Model inheritance and the session format for
   `nwdes measure` are unverified in pi.
 - The pi plugin duplicates the Devin plugin. A shared base would shrink the diff
   if this is upstreamed.

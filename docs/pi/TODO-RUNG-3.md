@@ -35,8 +35,8 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
   - frontmatter parses
   - `tools:` resolve to pi built-ins or `submit_<role>`
   - `skills:` exist
-- [ ] Check pi-code lists the agent (planned: E2E test, not install time).
-- [ ] Report prompt size per role (`prompt_chars` returned; warn on large not yet; no cap).
+- [x] Check pi-code lists the agent: covered by the live E2E (`Agent` to installed `nw-troubleshooter` resolves and runs); no explicit roster assertion.
+- [ ] ~~Report prompt size per role (`prompt_chars` returned; warn on large not yet; no cap).~~ Dropped: speculative, no threshold or consumer (ADR decision 4).
 - [x] List all failures at once.
 - [x] Leave target untouched on any failure.
 - [x] Map or drop Claude tools `Task`, `Skill`, `WebFetch`, `WebSearch`: decided in the ADR above; the validator accepts `subagent`, `web_fetch`, `web_search`.
@@ -64,4 +64,5 @@ One delivery: agents plugin + `Agent` wrapper + per-role `submit_<role>`.
 - [x] Contract test against real pi-code: unknown agent -> `subagent` (`isError:true` from `Agent`); maxTurns child -> ok, `details.partial:true`; API-error child -> `stop` (the `stopReason` field is live-confirmed). Not exercised: a true nonzero `exitCode` (pi-code surfaces launch errors as `Agent failed:` text first); the `stop` case depends on `claude-opus-4-8` answering 404, swap if that changes. Message shapes: `toolCall`/`toolCallId` confirmed by the envelope test; `toolResult.isError` (rejected submit) not exercised live. Re-run when `pi_code_package.SOURCE` changes.
 - [x] Update `subagent-delegation-gaps.md` with live-run results.
 - [x] Live checks: an installed `pi-code-nwave` copy without `node_modules` loads (typebox and pi packages come from pi); `submit` finds `$PI_CODING_AGENT_DIR/agents`; level-3 filter keeps `extensions/web.ts`; `Agent` and `submit_*` both work (child sees `submit_*`). pi-code's roster intro text in 1.7.0 matches `PI_CODE_INTRO` (source grep); the rewrite is not asserted live. Local-path entry is stored relative in `settings.json` and works.
+- [x] Decided (user): no child model pinning. `model: inherit` children run on pi's default model (or `CLAUDE_CODE_SUBAGENT_MODEL`), not the parent's `--model`; a bad default fails typed (`stop`). Documented, not fixed.
 - [x] Wheel built once: `nWave/pi-code-nwave/` has 5 files (extensions, package.json, schemas), no `node_modules`, no tests.

@@ -1,4 +1,8 @@
 import type { BeforeAgentStartEvent, ExtensionAPI, ExtensionToolContext, ToolDefinition } from '@earendil-works/pi-coding-agent'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+
 import { Value } from 'typebox/value'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -7,7 +11,9 @@ import agentExtension from '../extensions/agent/index.ts'
 type StartHandler = (event: BeforeAgentStartEvent) => unknown
 type ExecuteTool = ExtensionToolContext['executeTool']
 
-function load() {
+const tmpLog = () => mkdtempSync(join(tmpdir(), 'nw-agent-'))
+
+function load(logDir = tmpLog()) {
   const tools: ToolDefinition[] = []
   const handlers: StartHandler[] = []
   const pi = {
@@ -16,7 +22,7 @@ function load() {
       if (event === 'before_agent_start') handlers.push(h)
     },
   }
-  agentExtension(pi as unknown as ExtensionAPI)
+  agentExtension(pi as unknown as ExtensionAPI, logDir)
   return { tools, handlers, agent: tools.find((t) => t.name === 'Agent') }
 }
 
@@ -30,12 +36,13 @@ const outcome = (text: string, over: { isError?: boolean; results?: object[] } =
 
 const childOk = (text: string) => outcome(text)
 
-const toolCtx = (executeTool: ExecuteTool) => ({ executeTool }) as unknown as ExtensionToolContext
+const toolCtx = (executeTool: ExecuteTool, session = 'sess-1') =>
+  ({ executeTool, sessionManager: { getSessionId: () => session } }) as unknown as ExtensionToolContext
 
-function run(executeTool: ExecuteTool, params = { subagent_type: 'explore', prompt: 'go' }) {
-  const { agent } = load()
+function run(executeTool: ExecuteTool, params = { subagent_type: 'explore', prompt: 'go' }, logDir?: string, session?: string) {
+  const { agent } = load(logDir)
   if (!agent) throw new Error('Agent tool not registered')
-  return agent.execute('id1', params, undefined, undefined, toolCtx(executeTool))
+  return agent.execute('id1', params, undefined, undefined, toolCtx(executeTool, session))
 }
 
 function schema() {
@@ -223,6 +230,34 @@ describe('Agent extension', () => {
 
     it('should not throw when the event carries no sections', () => {
       expect(() => start()?.({} as BeforeAgentStartEvent)).not.toThrow()
+    })
+  })
+
+  describe('requests log', () => {
+    const lines = (dir: string, session: string) =>
+      readFileSync(join(dir, `${session}.jsonl`), 'utf8').trim().split('\n').map((l) => JSON.parse(l))
+
+    it('should append one nwdes request record per call, even for a failed one', async () => {
+      const dir = tmpLog()
+      await run(async () => childOk('ok'), { subagent_type: 'nw-x', prompt: 'go' }, dir)
+      await run(async () => outcome('boom', { isError: true }), { subagent_type: 'nw-y', prompt: 'go' }, dir)
+      const [a, b] = lines(dir, 'sess-1')
+      expect(a).toMatchObject({ role: 'nw-x', task: null, slice: null, continuation: false, rework: false })
+      expect(a.start <= a.end && /^\d{4}-\d\d-\d\dT[\d:.]+Z$/.test(a.start)).toBe(true)
+      expect(b.role).toBe('nw-y')
+    })
+
+    it('should keep one file per pi session', async () => {
+      const dir = tmpLog()
+      await run(async () => childOk('ok'), { subagent_type: 'nw-x', prompt: 'go' }, dir, 'sess-a')
+      await run(async () => childOk('ok'), { subagent_type: 'nw-y', prompt: 'go' }, dir, 'sess-b')
+      expect(lines(dir, 'sess-a').map((r) => r.role)).toEqual(['nw-x'])
+      expect(lines(dir, 'sess-b').map((r) => r.role)).toEqual(['nw-y'])
+    })
+
+    it('should not fail the delegation when the log cannot be written', async () => {
+      const r = await run(async () => childOk('ok'), undefined, '/nonexistent-dir/x')
+      expect(r.isError).toBeUndefined()
     })
   })
 })

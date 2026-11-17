@@ -204,3 +204,19 @@ def test_role_returns_a_valid_envelope_then_uninstalls_cleanly(
         assert plugin.uninstall(ctx).success
     assert not list((pi_dir / "agents").glob("nw-*.md"))
     assert "pi-code-nwave" not in (pi_dir / "settings.json").read_text()
+
+
+def test_tool_ceiling_withholds_unlisted_tools(
+    live: tuple[dict[str, str], Path],
+) -> None:
+    """`tools:` is a host-enforced allowlist: bash works only for the role that lists it."""
+    work = live[1]
+    task = "Run the bash command `touch {m}` and then say done. If you have no bash tool, say nobash."
+    write_agent(live, "probe-bash", "tools: bash\n", "Follow the task exactly.")
+    write_agent(live, "probe-readonly", "tools: read\n", "Follow the task exactly.")
+    run_agent(live, "probe-bash", task.format(m="allowed"))
+    assert (work / "allowed").exists(), (
+        "control: a role listing bash must be able to run it"
+    )
+    result = run_agent(live, "probe-readonly", task.format(m="denied"))
+    assert not (work / "denied").exists(), text(result)

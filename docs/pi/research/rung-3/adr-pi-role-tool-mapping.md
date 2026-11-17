@@ -80,6 +80,7 @@ Follow the OMP laws. A scoped entry (`Bash(...)`) is dropped, not mapped to bare
 ## Accepted risks
 
 - U1 and U2 are unverified until a live run (`NWAVE_PI_E2E`).
+- A role with no `tools:` key inherits every tool in Claude Code but maps to `submit_<role>` only in pi (narrower, safe). No public role omits `tools:` today.
 - Writing the delegation tool name into child roles is inert if children cannot call it.
 - The rename `subagent` → `Agent` is a follow-up; roles generated before it name `subagent` until reinstall.
 - DuckDuckGo scraping (`web_search`) is key-free and may break upstream; not under our control.

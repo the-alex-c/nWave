@@ -53,13 +53,13 @@ Gap doc: [pi-vs-codex-gaps.md](pi-vs-codex-gaps.md). This is the first rung that
 
 Branch: `pi-platform-rung-3`
 
-- [ ] Named role registry (agent files pi can discover)
-- [ ] `spawn_agent`-style delegation tool in a new extension (rung 2 has none; pi-code is hooks only). Starting points: pi's `examples/extensions/subagent` (spawns a `pi` subprocess) and `pi-code`'s own `subagent` tool (dropped by the rung 2 hooks-only filter)
-- [ ] Typed reply equivalent of Codex `--output-schema` so roles can return `role_envelope`
-- [ ] Installer: pi agents plugin; keep `skills:` (pi-code preloads them from `$CLAUDE_CONFIG_DIR/skills`) and give the tool ceiling as a prompt preamble (model on `codex_agents_plugin.py`)
-- [ ] Optional per-role `model`
+- [x] Named role registry (agent files pi can discover)
+- [x] `spawn_agent`-style delegation tool in a new extension (rung 2 has none; pi-code is hooks only). Starting points: pi's `examples/extensions/subagent` (spawns a `pi` subprocess) and `pi-code`'s own `subagent` tool (dropped by the rung 2 hooks-only filter)
+- [x] Typed reply equivalent of Codex `--output-schema` so roles can return `role_envelope`
+- [x] Installer: pi agents plugin (`pi_agents_plugin.py`; ceiling is mapped to `tools:`, which pi-code enforces as `--tools`, not a prompt preamble); keeps `skills:` (pi-code preloads them from `$CLAUDE_CONFIG_DIR/skills`)
+- [ ] Optional per-role `model` (decided: no pinning; `model` dropped, children use pi's default)
 - [ ] Optional, low priority, not a requirement: wall-clock cap on the `Agent` child (runaway backstop; kill tree, typed failure). No stall detection: the stall guard is the installer's concern. Default is unmeasured (900 s was sized against stalls, not task duration); measure real child durations first. See gap 5 in [subagent-delegation-gaps.md](research/rung-3/subagent-delegation-gaps.md)
-- [ ] Verify: tool-ceiling enforcement, model inheritance, session format for `nwdes measure` (use `--requests` until then)
+- [x] Verify: tool-ceiling enforcement, model inheritance, session format for `nwdes measure` (use `--requests` until then). Tool ceiling verified live (`test_tool_ceiling_withholds_unlisted_tools`: `tools: bash` child runs bash, `tools: read` child cannot). Session format: native `nwdes measure` refuses pi sessions; the `Agent` wrapper writes a requests log for `--requests` ([TODO-SESSION-FORMAT.md](TODO-SESSION-FORMAT.md), ADR accepted); inheritance documented as pi's default model, not parent's
 
 ## Rung 4: OMP (commands, extension, autoload)
 
