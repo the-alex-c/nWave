@@ -4,6 +4,8 @@ import json
 import tomllib
 from pathlib import Path
 
+from scripts.shared import pi_nwave_package
+
 
 ROOT = Path(__file__).resolve().parents[2]
 PKG = ROOT / "pi-code-nwave"
@@ -19,6 +21,21 @@ def test_manifest_declares_both_extensions_that_exist() -> None:
     manifest = json.loads((PKG / "package.json").read_text())
     assert manifest["pi"]["extensions"] == EXTENSIONS
     assert all((PKG / e).is_file() for e in EXTENSIONS)
+
+
+def test_relative_settings_entry_resolving_to_the_same_directory_counts_as_loaded(
+    tmp_path: Path,
+) -> None:
+    """pi may store the local-path entry relative to the pi dir; check() must not
+    fail on a raw-string mismatch when both resolve to the same directory."""
+    real = tmp_path / "pi-code-nwave"
+    real.mkdir()
+    pi_dir = tmp_path / "pi"
+    pi_dir.mkdir()
+    (pi_dir / "settings.json").write_text(
+        json.dumps({"packages": ["../pi-code-nwave"]}), encoding="utf-8"
+    )
+    assert pi_nwave_package.check(pi_dir, str(real)) == []
 
 
 def test_wheel_bundles_the_package_without_dev_files() -> None:

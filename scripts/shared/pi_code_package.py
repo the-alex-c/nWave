@@ -10,11 +10,8 @@ import json
 import re
 import shutil
 import subprocess
-from typing import TYPE_CHECKING, Any
-
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from pathlib import Path
+from typing import Any
 
 
 SOURCE = "npm:pi-code@1.7.0"
@@ -53,6 +50,18 @@ def load_settings(settings: Path) -> dict[str, Any]:
 
 def entry_source(entry: Any) -> str | None:
     return entry.get("source") if isinstance(entry, dict) else entry
+
+
+def same_source(pi_dir: Path, entry: Any, source: str) -> bool:
+    """True when the entry's source resolves to the same path as ``source``.
+
+    Resolves relative spellings against ``pi_dir`` and follows symlinks, so a
+    package recorded as a relative local path still matches its absolute source.
+    """
+    candidate = entry_source(entry)
+    if not isinstance(candidate, str):
+        return False
+    return Path(pi_dir / candidate).resolve() == Path(source).resolve()
 
 
 def _find(document: dict[str, Any]) -> Any:
@@ -108,7 +117,9 @@ def ensure(pi_dir: Path, log: Any, level: int) -> None:
     action = _plan(entry, owned, pi_available(), level)
     if action == "keep":
         if entry is not None and not owned and not _canonical(entry, level):
-            log.info(f"  ⚠️ pi-code already installed, left as is: {entry_source(entry)}")
+            log.info(
+                f"  ⚠️ pi-code already installed, left as is: {entry_source(entry)}"
+            )
         return
     if action == "hint":
         log.info(
@@ -157,7 +168,5 @@ def check(pi_dir: Path, level: int) -> tuple[list[str], list[str]]:
         ], []
     if _canonical(entry, level):
         return [], []
-    problem = (
-        f"pi-code is {entry_source(entry)}, nWave expects {SOURCE} filtered to {filter_for(level)}"
-    )
+    problem = f"pi-code is {entry_source(entry)}, nWave expects {SOURCE} filtered to {filter_for(level)}"
     return ([problem], []) if _marker(pi_dir).is_file() else ([], [problem])

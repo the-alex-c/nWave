@@ -19,8 +19,9 @@ MARKER = ".nwave-pi-code-nwave.json"
 
 
 def _present(pi_dir: Path, source: str) -> bool:
+    """True when an installed package entry resolves to the same path as ``source``."""
     packages = pcp.load_settings(pi_dir / "settings.json").get("packages", [])
-    return any(pcp.entry_source(entry) == source for entry in packages)
+    return any(pcp.same_source(pi_dir, entry, source) for entry in packages)
 
 
 def ensure(pi_dir: Path, log: Any, source: str) -> None:
