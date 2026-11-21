@@ -188,6 +188,33 @@ describe('Agent extension', () => {
     })
   })
 
+  describe('submit reminder in the child prompt', () => {
+    // A host-scoped reminder line names the role's submit tool so a long real-work child
+    // ends with an accepted submit call instead of prose (P2).
+    const dispatch = async (subagent_type: string, prompt = 'go') => {
+      const executeTool = vi.fn(async () => childOk('PONG'))
+      await run(executeTool as unknown as ExecuteTool, { subagent_type, prompt })
+      const call = executeTool.mock.calls[0] as unknown as [string, { agent: string; task: string }, object]
+      return call[1].task
+    }
+
+    it('should end an nw-x child prompt with one line naming its submit tool', async () => {
+      const task = await dispatch('nw-x')
+      expect(task.split('\n').at(-1)).toContain('submit_nw_x')
+      expect(task.split('submit_nw_x')).toHaveLength(2)
+    })
+
+    it('should name the submit tool of a hyphenated role', async () => {
+      const task = await dispatch('nw-solution-architect')
+      expect(task.split('\n').at(-1)).toContain('submit_nw_solution_architect')
+      expect(task.split('submit_nw_solution_architect')).toHaveLength(2)
+    })
+
+    it('should append no reminder to a non-nw child prompt', async () => {
+      expect(await dispatch('explore', 'go')).toBe('go')
+    })
+  })
+
   describe('system prompt roster', () => {
     // The text pi-code writes (subagent/index.ts, before_agent_start).
     const LIST = '- nw-software-crafter (user): Builds code.\n- explore (builtin): Reads code.'

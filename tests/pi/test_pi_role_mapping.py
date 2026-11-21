@@ -7,13 +7,14 @@ text and prints the reports, the validator checks the text.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from scripts.shared.frontmatter import parse_frontmatter
-from scripts.shared.pi_role_mapping import to_pi_role
+from scripts.shared.pi_role_mapping import submit_tool, to_pi_role
 from scripts.shared.pi_role_validation import validate_role
 
 
@@ -153,3 +154,44 @@ def test_mapping_is_idempotent_on_its_own_output() -> None:
     twice, reports = to_pi_role("nw-x", once)
     assert twice == once
     assert reports == []
+
+
+# -- submit-name drift (P4: Python/TypeScript derivation agreement) -----------
+
+#: Roles exercising the separator rule (plain, single-hyphen, multi-hyphen).
+_ROLES = ("nw-x", "nw-solution-architect", "nw-software-crafter")
+
+#: The TypeScript owner of the same derivation; consulted, never copied.
+_TS_SUBMIT_TOOL = (
+    Path(__file__).resolve().parents[2]
+    / "pi-code-nwave"
+    / "extensions"
+    / "submit-tool.ts"
+)
+
+
+def _ts_submit_tool(role: str) -> str:
+    """Evaluate the TS derivation literally, so drift cannot hide behind a copy."""
+    src = _TS_SUBMIT_TOOL.read_text().splitlines()
+    expr = next(
+        ln.split("=>", 1)[1].strip()
+        for ln in src
+        if "submitToolName" in ln and "=>" in ln
+    )
+    assert re.fullmatch(r"'submit_' \+ role\.replaceAll\('-', '_'\)", expr), (
+        f"TypeScript submitToolName derivation changed shape; teach this drift test "
+        f"to evaluate it (current TS: {expr!r}; Python owner: "
+        f"scripts/shared/pi_role_mapping.py submit_tool)"
+    )
+    py_expr = expr.replace("role", repr(role)).replace("replaceAll", "replace")
+    # eval is safe here: the expression is regex-pinned above, builtins stripped.
+    return str(eval(py_expr, {"__builtins__": {}}, {}))
+
+
+@pytest.mark.parametrize("role", _ROLES)
+def test_submit_name_drift_fails_naming_the_divergence(role: str) -> None:
+    py, ts = submit_tool(role), _ts_submit_tool(role)
+    assert py == ts, (
+        f"submit-name drift: Python submit_tool({role!r}) -> {py!r} but "
+        f"TypeScript submitToolName -> {ts!r}; keep both derivations identical"
+    )

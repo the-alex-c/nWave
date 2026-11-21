@@ -53,11 +53,18 @@ required submit call — probes end correctly; real work ends in plain prose.
 Aggravating factor: the generated nwdes role bundle never names the submit
 mechanism, so the child has no in-bundle reminder at the turn where it fails.
 
-### Cheap durable fix (agreed, not yet delivered)
+### Cheap durable fix (agreed, relocated during implementation)
 
-`nwdes prompt` generation appends one line to every role bundle: "your turn
-must end with a call to `submit_<role>`". This converts the failure from
-probabilistic to by-construction.
+Originally agreed as: `nwdes prompt` appends one line to every role bundle.
+**Relocated before implementation**: nwdes bundles are host-agnostic by
+contract (nw-role-invocation skill: "the native host owns model execution"),
+and the `submit_<role>` envelope is a pi-only mechanism — so the bundle is the
+wrong place and would give wrong advice on codex/claude native hosts. The fix
+lives in the pi wrapper instead: `agent/index.ts` already computes
+`submitToolName(role)` for the envelope check, and appends one host-scoped
+reminder line to the child prompt in the same place — name consistency by
+construction, single derivation, pi dispatches only. Same defect, more
+correct location.
 
 ## 3. Follow-on problem: model facts across providers
 
@@ -151,6 +158,6 @@ Slice 2 (pi wrapper capture) is next.
       [`adr-defer-nwave-ai-model-provider-expansion.md`](./adr-defer-nwave-ai-model-provider-expansion.md)
       records why, the rejected framings, and the conditions for revisiting.
 - [ ] Deliver Slice 2 (pi wrapper `logRequest` model capture) via nwdes — next.
-- [ ] Deliver the dispatch-defect bundle-line fix (§2) — independent of both slices.
+- [ ] Deliver the dispatch-defect wrapper reminder fix (§2, relocated from the bundle) — independent of both slices.
 - [ ] Retry the `nw-acceptance-designer` dispatch for `tui-observe` S1 after
       the bundle fix lands.

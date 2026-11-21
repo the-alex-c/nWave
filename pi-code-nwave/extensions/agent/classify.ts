@@ -15,12 +15,13 @@ export interface ToolResult {
   result: { content: { type: string; text?: string }[]; details?: { results?: object[] } }
 }
 
-interface Child {
+export interface Child {
   exitCode?: number
   stopReason?: string
   stderr?: string
   errorMessage?: string
   partial?: boolean
+  model?: string
   messages?: Message[]
 }
 
