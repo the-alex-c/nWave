@@ -1,0 +1,854 @@
+{
+"acceptance": {
+"S1": [
+{
+"covers": [
+"P1",
+"P2"
+],
+"disposition": {
+"kind": "Tested",
+"obligations": [
+"L2"
+],
+"still_passes_if": "F125",
+"test": "pi-code-nwave/tests/agent.test.ts@Tested"
+},
+"expected": "F111",
+"stimulus": "F110",
+"user_result": "F124"
+},
+{
+"covers": [
+"P2"
+],
+"disposition": {
+"kind": "Tested",
+"obligations": [
+"T1"
+],
+"still_passes_if": "F129",
+"test": "pi-code-nwave/tests/agent.test.ts@Tested"
+},
+"expected": "F127",
+"stimulus": "F126",
+"user_result": "F128"
+},
+{
+"covers": [
+"P2"
+],
+"disposition": {
+"kind": "Tested",
+"obligations": [
+"L2"
+],
+"still_passes_if": "F133",
+"test": "pi-code-nwave/tests/agent.test.ts@Tested"
+},
+"expected": "F131",
+"stimulus": "F130",
+"user_result": "F132"
+}
+],
+"S2": [
+{
+"covers": [
+"P3"
+],
+"disposition": {
+"kind": "Tested",
+"obligations": [
+"L2/F65",
+"L2/F71"
+],
+"still_passes_if": "F141",
+"test": "pi-code-nwave/tests/agent.test.ts:requests log > observed child model > should record the observed child model as the pair {provider, model}"
+},
+"expected": "F139",
+"stimulus": "F114",
+"user_result": "F140"
+},
+{
+"covers": [
+"P3"
+],
+"disposition": {
+"kind": "Tested",
+"obligations": [
+"L2/F65"
+],
+"still_passes_if": "F145",
+"test": "pi-code-nwave/tests/agent.test.ts:requests log > observed child model > should omit the model field when pi reports no child model"
+},
+"expected": "F143",
+"stimulus": "F142",
+"user_result": "F144"
+}
+]
+},
+"counters": {
+"C": 1,
+"D": 4,
+"E": 3,
+"F": 145,
+"K": 4,
+"L": 3,
+"P": 4,
+"S": 3,
+"T": 3,
+"Y": 3
+},
+"design": {
+"paradigm": "procedural",
+"shared": {
+"agreement": [
+{
+"contract": "requests log record shape (~/.pi/agent/nwave-requests/<sessionId>.jsonl, one JSON object per line: role/task/slice/start/end/continuation/rework, + model)",
+"decision": "Migrated",
+"locator": "pi-code-nwave/extensions/agent/index.ts:21",
+"party": "Producer",
+"reason": "F52"
+},
+{
+"contract": "requests log record shape",
+"decision": "UnchangedCompatible",
+"locator": "pi-code-nwave/extensions/agent/index.ts:21",
+"party": "Consumer",
+"reason": "F53"
+},
+{
+"contract": "child prompt -> submit envelope (wrapper prompt, child reply, classify envelope check)",
+"decision": "Migrated",
+"locator": "pi-code-nwave/extensions/agent/classify.ts:46",
+"party": "Producer",
+"reason": "F54"
+},
+{
+"contract": "child prompt -> submit envelope",
+"decision": "UnchangedCompatible",
+"locator": "pi-code-nwave/extensions/agent/classify.ts:46",
+"party": "Consumer",
+"reason": "F55"
+},
+{
+"contract": "submit_<role> name derivation ('submit_' + role with '-'->'_')",
+"decision": "UnchangedCompatible",
+"locator": "pi-code-nwave/extensions/submit-tool.ts:2",
+"party": "Producer",
+"reason": "F56"
+},
+{
+"contract": "submit_<role> name derivation",
+"decision": "UnchangedCompatible",
+"locator": "scripts/shared/pi_role_mapping.py:40",
+"party": "Consumer",
+"reason": "F57"
+}
+],
+"architectural_tests": [
+{
+"command": "bash -c 'cd pi-code-nwave && ./node_modules/.bin/vitest run tests/agent.test.ts'",
+"id": "T1",
+"obligation": "F104",
+"oracle": "pi-code-nwave/tests/agent.test.ts"
+}
+],
+"boundaries": {
+"dependency_direction": "F62",
+"driven_ports": [
+"F60",
+"F61"
+],
+"driving_port": "F59"
+},
+"claims": [
+{
+"admitted_input": "F78",
+"bypass": "F80",
+"constructor": "submitToolName",
+"consumer": "pi child model reading the prompt",
+"harm": "F77",
+"id": "C1",
+"owner": "pi-code-nwave/extensions/agent/index.ts:39",
+"proposition": "F76",
+"public_observation": "F79"
+}
+],
+"closure": [
+{
+"axis": "Safety",
+"basis": "F85",
+"design": "Pass",
+"evidence": [
+"tests/pi/test_pi_role_mapping.py"
+],
+"runtime": "DesignedNotBuilt",
+"subject": "F84"
+},
+{
+"axis": "Inhabitation",
+"basis": "F86",
+"design": "Pass",
+"evidence": [
+"pi-code-nwave/tests/agent.test.ts"
+],
+"runtime": "DesignedNotBuilt",
+"subject": "F84"
+},
+{
+"axis": "PublicReachability",
+"basis": "F87",
+"design": "Pass",
+"evidence": [
+"pi-code-nwave/tests/agent.test.ts"
+],
+"runtime": "DesignedNotBuilt",
+"subject": "F84"
+},
+{
+"axis": "Liveness",
+"basis": "F88",
+"design": "Pass",
+"evidence": [
+"pi-code-nwave/tests/agent.test.ts"
+],
+"runtime": "DesignedNotBuilt",
+"subject": "F84"
+}
+],
+"constraints": [
+{
+"id": "K1",
+"text": "F39"
+},
+{
+"id": "K2",
+"text": "F40"
+},
+{
+"id": "K3",
+"text": "F41"
+},
+{
+"id": "K4",
+"text": "F42"
+}
+],
+"contract_tests": [
+{
+"command": "bash -c 'cd pi-code-nwave && ./node_modules/.bin/vitest run tests/agent.test.ts'",
+"consumer": "nwdes measure --requests (jq reader)",
+"contract": "requests log record shape (~/.pi/agent/nwave-requests/<sessionId>.jsonl, one JSON object per line, + model)",
+"id": "T2",
+"obligation": "F105",
+"observation": "F106",
+"oracle": "pi-code-nwave/tests/agent.test.ts",
+"producer": "pi-code-nwave/extensions/agent/index.ts:21 logRequest"
+},
+{
+"command": "bash -c '.venv/bin/pytest tests/pi/test_pi_role_mapping.py -k drift'",
+"consumer": "scripts/shared/pi_role_mapping.py:40 submit_tool",
+"contract": "submit_<role> name derivation ('submit_' + role with '-'->'_')",
+"id": "T3",
+"obligation": "F107",
+"observation": "F108",
+"oracle": "tests/pi/test_pi_role_mapping.py",
+"producer": "pi-code-nwave/extensions/submit-tool.ts:2 submitToolName"
+}
+],
+"decisions": [
+{
+"id": "D1",
+"text": "F35"
+},
+{
+"id": "D2",
+"text": "F36"
+},
+{
+"id": "D3",
+"text": "F37"
+},
+{
+"id": "D4",
+"text": "F38"
+}
+],
+"impact": [
+{
+"decision": "Changed",
+"kind": "prompt_contract",
+"locator": "pi-code-nwave/extensions/agent/index.ts:39",
+"reason": "F48"
+},
+{
+"decision": "Changed",
+"kind": "log_record",
+"locator": "pi-code-nwave/extensions/agent/index.ts:21",
+"reason": "F49"
+},
+{
+"decision": "Changed",
+"kind": "test",
+"locator": "pi-code-nwave/tests/agent.test.ts:1",
+"reason": "F50"
+},
+{
+"decision": "Changed",
+"kind": "test",
+"locator": "tests/pi/test_pi_role_mapping.py:40",
+"reason": "F51"
+}
+],
+"laws": [
+{
+"evidence": [
+"tests/pi/test_pi_role_mapping.py"
+],
+"id": "L1",
+"kind": "Algebraic",
+"layer": "Infrastructure",
+"owner": "pi-code-nwave/extensions/submit-tool.ts:2",
+"statement": "F63",
+"treatment": {
+"falsifier": "F69",
+"generator": {
+"domain": "F64",
+"must_include": [
+"F65",
+"F66"
+],
+"seed_policy": "fixed seed list",
+"shrinking": "F67",
+"size_bound": "128"
+},
+"independent_observation": "F68",
+"kind": "Broad"
+}
+},
+{
+"evidence": [
+"pi-code-nwave/tests/agent.test.ts"
+],
+"id": "L2",
+"kind": "Invariant",
+"layer": "Adapter",
+"owner": "pi-code-nwave/extensions/agent/index.ts:39",
+"statement": "F70",
+"treatment": {
+"cases": [
+"F71",
+"F65"
+],
+"kind": "Finite",
+"reason": "F72"
+}
+},
+{
+"evidence": [
+"pi-code-nwave/tests/agent.test.ts"
+],
+"id": "L3",
+"kind": "Invariant",
+"layer": "Infrastructure",
+"owner": "pi-code-nwave/extensions/agent/index.ts:21",
+"statement": "F73",
+"treatment": {
+"cases": [
+"F74"
+],
+"kind": "Finite",
+"reason": "F75"
+}
+}
+],
+"not_applicable": [
+{
+"analysis": "prefactoring",
+"reason": "F58"
+}
+],
+"reuse": [
+{
+"decision": "Reuse",
+"locator": "pi-code-nwave/extensions/submit-tool.ts:2",
+"reason": "F43",
+"symbol": "submitToolName"
+},
+{
+"decision": "Reuse",
+"locator": "scripts/shared/pi_role_mapping.py:40",
+"reason": "F44",
+"symbol": "submit_tool"
+},
+{
+"decision": "Extend",
+"locator": "pi-code-nwave/extensions/agent/index.ts:21",
+"reason": "F45",
+"symbol": "logRequest"
+},
+{
+"decision": "Extend",
+"locator": "pi-code-nwave/extensions/agent/classify.ts:30",
+"reason": "F46",
+"symbol": "Child"
+},
+{
+"decision": "Extend",
+"locator": "tests/pi/test_pi_role_mapping.py:16",
+"reason": "F47",
+"symbol": "to_pi_role"
+}
+],
+"risks": [
+{
+"allowed": "F91",
+"forbidden": "F92",
+"id": "Y1",
+"kind": "Stressor",
+"owner": "pi-code-nwave/extensions/agent/index.ts maintainer",
+"preserved": "F90",
+"residue": "F93",
+"source": "F89"
+},
+{
+"allowed": "F96",
+"forbidden": "F97",
+"id": "Y2",
+"kind": "Bypass",
+"owner": "pi-code-nwave/extensions/agent/index.ts maintainer",
+"preserved": "F95",
+"residue": "F98",
+"source": "F94"
+},
+{
+"allowed": "F101",
+"forbidden": "F102",
+"id": "Y3",
+"kind": "SinglePointOfFailure",
+"owner": "tests/pi/test_pi_role_mapping.py drift test",
+"preserved": "F100",
+"residue": "F103",
+"source": "F99"
+}
+],
+"states": [
+{
+"kind": "Admitted",
+"owner": "pi-code-nwave/extensions/agent/index.ts:39",
+"state": "F81"
+},
+{
+"kind": "Excluded",
+"owner": "pi-code-nwave/extensions/agent/index.ts:39",
+"state": "F82"
+},
+{
+"kind": "Unknown",
+"owner": "pi-code-nwave/extensions/agent/index.ts:21",
+"state": "F83"
+}
+]
+},
+"slices": {
+"S1": {
+"oracle": "pi-code-nwave/tests/agent.test.ts",
+"public_oracle": {
+"expected": "F111",
+"falsifier": "F112",
+"promises": [
+"P1",
+"P2"
+],
+"stimulus": "F110"
+},
+"supports": [
+"pi-code-nwave/extensions/submit-tool.ts"
+],
+"targets": [
+{
+"change": "Extend",
+"path": "pi-code-nwave/extensions/agent/index.ts",
+"reason": "F109"
+}
+],
+"verification": [
+"bash -c 'cd pi-code-nwave && ./node_modules/.bin/vitest run tests/agent.test.ts'"
+]
+},
+"S2": {
+"oracle": "pi-code-nwave/tests/agent.test.ts",
+"public_oracle": {
+"expected": "F115",
+"falsifier": "F116",
+"promises": [
+"P3"
+],
+"stimulus": "F114"
+},
+"supports": [
+"pi-code-nwave/extensions/agent/classify.ts"
+],
+"targets": [
+{
+"change": "Extend",
+"path": "pi-code-nwave/extensions/agent/index.ts",
+"reason": "F113"
+}
+],
+"verification": [
+"bash -c 'cd pi-code-nwave && ./node_modules/.bin/vitest run tests/agent.test.ts'"
+]
+},
+"S3": {
+"oracle": "tests/pi/test_pi_role_mapping.py",
+"public_oracle": {
+"expected": "F119",
+"falsifier": "F120",
+"promises": [
+"P4"
+],
+"stimulus": "F118"
+},
+"supports": [
+"pi-code-nwave/extensions/submit-tool.ts",
+"scripts/shared/pi_role_mapping.py"
+],
+"targets": [
+{
+"change": "Extend",
+"path": "tests/pi/test_pi_role_mapping.py",
+"reason": "F117"
+}
+],
+"verification": [
+"bash -c '.venv/bin/pytest tests/pi/test_pi_role_mapping.py -k drift'"
+]
+}
+}
+},
+"examination": {
+"E1": {
+"observations": [
+"F134"
+],
+"verdict": "met"
+},
+"E2": {
+"observations": [
+"F135",
+"F136"
+],
+"verdict": "met"
+},
+"E3": {
+"observations": [
+"F137",
+"F138"
+],
+"verdict": "met"
+}
+},
+"expectations": {
+"rows": [
+{
+"id": "E1",
+"promises": [
+"P1",
+"P2"
+],
+"text": "F121"
+},
+{
+"id": "E2",
+"promises": [
+"P3"
+],
+"text": "F122"
+},
+{
+"id": "E3",
+"promises": [
+"P4"
+],
+"text": "F123"
+}
+]
+},
+"facts": {
+"F1": "Harden the pi wrapper's role-dispatch envelope: append a host-scoped submit-tool reminder to every nw- role child prompt (dispatch-defect fix, relocated from the bundle per the record), record the observed child model in the per-session requests log, and pin the Python/TypeScript submit-tool name derivations against silent drift. Boundaries: pi-code itself is never touched; the wrapper is nWave-owned (pi-code-nwave). Evidence: docs/reference/dispatch-model-facts-record.md",
+"F10": "the per-session requests log (~/.pi/agent/nwave-requests/<sessionId>.jsonl) gains a field recording the child model that actually ran",
+"F100": "one derivation shared by reminder and envelope check",
+"F101": "changing both TS and Python with the drift test green",
+"F102": "one-sided derivation change",
+"F103": "none; S3 drift test pins the pair",
+"F104": "The reminder is appended only in pi-code-nwave/extensions/agent/index.ts and uses submitToolName(subagent_type), never a re-derived or literal name; reminder and envelope check share one derivation",
+"F105": "The requests log record gains model in the agreed pair shape when the child result carries a model",
+"F106": "the per-session jsonl record contains model:{provider,model} derived from the observed provider/model string",
+"F107": "One-sided change of the TS or Python submit-name derivation makes a test fail naming the divergence",
+"F108": "both derivations produce identical names for representative role names",
+"F109": "Append one host-scoped reminder line naming submitToolName(subagent_type) to every nw- role child prompt",
+"F11": "Submit-name drift fails a test",
+"F110": "dispatch the Agent tool with subagent_type nw-x and a task",
+"F111": "the task argument passed to pi's subagent tool ends with one line naming submit_nw_x",
+"F112": "a dispatch whose prompt lacks the reminder line (or names a different tool)",
+"F113": "logRequest gains model:{provider,model} derived from the observed child result model; Child interface gains model?: string",
+"F114": "dispatch an nw- role child whose result carries model z-ai/glm-5.3-flash",
+"F115": "the per-session jsonl record gains model:{provider:z-ai,model:glm-5.3-flash}",
+"F116": "a record without the model pair, or a pair not derived from the observed string",
+"F117": "Add the drift test cross-checking the TS submitToolName derivation against the Python submit_tool owner",
+"F118": "change one derivation (TS or Python) while the other keeps its shape",
+"F119": "pytest fails naming the Python/TypeScript divergence",
+"F12": "The Python and TypeScript submit-tool name derivations exist in the wrapper",
+"F120": "both derivations agree on representative role names -> the test passes",
+"F121": "When a pi session dispatches any nw- role child, the built child prompt ends with a single host-scoped line naming that role's submit tool (submit_<role>), so even a long real-work child is reminded to terminate with the accepted submit call by construction (P1, P2).",
+"F122": "After a pi session dispatches an nw- role child that runs, the wrapper logs the role start and end, and the per-session requests log (~/.pi/agent/nwave-requests/<sessionId>.jsonl) gains a field recording the child model that actually ran (P3).",
+"F123": "When the Python and TypeScript submit-tool name derivations in the wrapper disagree (one changed, the other not), a test fails and names the divergence, instead of a role dispatch failing after minutes of real work (P4).",
+"F124": "the child prompt pi receives ends with the submit-tool reminder, so the child is reminded to end with an accepted submit call",
+"F125": "a reminder line naming the tool but not placed as the final line, or naming it twice",
+"F126": "dispatch the Agent tool with subagent_type nw-solution-architect and a task",
+"F127": "the reminder line names the hyphenated role's submit tool submit_nw_solution_architect, the same name the envelope check derives",
+"F128": "any nw- role gets its own tool name in the reminder, not a generic one",
+"F129": "a literal name string that coincides with the derived name for this role",
+"F13": "one derivation is changed while the other is not",
+"F130": "dispatch the Agent tool with a non-nw subagent_type and a task",
+"F131": "the task argument passed to pi's subagent tool is unchanged, with no reminder line",
+"F132": "non-nw delegations keep their original prompt",
+"F133": "a reminder appended only to nw- prompts but visible to non-nw agents through the shared roster",
+"F134": "vitest run tests/agent.test.ts: 35 passed. Reminder rows observed: nw-x child prompt ends with one line containing submit_nw_x (exactly one occurrence); nw-solution-architect prompt ends with submit_nw_solution_architect once; non-nw (explore) prompt passed through unchanged with no reminder line. The reminder shares submitToolName with the envelope check (pi-code-nwave/extensions/agent/index.ts appends it as the final line only for nw- prefixed subagent_type).",
+"F135": "Scratch vitest fixture (workspace scratch/cfg, imports the candidate's extensions/agent/index.ts with a stubbed pi host): dispatch nw-x with child result carrying model 'z-ai/glm-5.3-flash' -> the record gains model {provider:'z-ai', model:'glm-5.3-flash'}; 'a/b/c' splits on the FIRST slash into {provider:'a', model:'b/c'}; a result with no model field omits the model field; role 'nw-x' and start/end still recorded. 4/4 passed.",
+"F136": "vitest requests-log rows observed: one record per Agent call appended to <session>.jsonl with role, start, end (ISO start<=end), per-session file separation, and a delegation still succeeding when the log dir is unwritable (catch-all retained). These suite tests assert start/end and role but do NOT assert the model field.",
+"F137": "Negative stimulus executed: mutated only the TS derivation (submit-tool.ts replaceAll('-','_X')), Python owner unchanged -> pytest fails all 3 drift cases with 'TypeScript submitToolName derivation changed shape ... current TS: ...replace All..._X; Python owner: scripts/shared/pi_role_mapping.py submit_tool'. File restored byte-identical; pytest passes again.",
+"F138": "pytest tests/pi/test_pi_role_mapping.py -k submit (derivations agreeing): 3 parametrized cases (nw-x, nw-solution-architect, nw-software-crafter) pass - the falsifier side (agreement -> test passes) holds.",
+"F139": "the per-session jsonl record gains model with provider z-ai and model glm-5.3-flash, derived by splitting the observed string on the first slash",
+"F14": "a test fails naming the divergence, instead of a role dispatch failing after minutes of work",
+"F140": "the owner inspects the per-session requests log and sees which model actually ran for the dispatch",
+"F141": "the wrapper logs a model pair derived from any fixed default instead of the child's observed result string",
+"F142": "dispatch an nw- role child whose result carries no model",
+"F143": "the per-session jsonl record omits the model field entirely",
+"F144": "the owner sees no model claim in the log when no model was observed, so the log never asserts a model that did not run",
+"F145": "the wrapper logs a model pair with empty or null parts when no child model is observed",
+"F15": "Append a host-scoped submit-tool reminder line to every nw- role child prompt in the pi wrapper (pi-code-nwave/extensions/agent/index.ts), using the same submitToolName(role) derivation the envelope check uses",
+"F16": "Record the observed child model in the per-session requests log (logRequest) in the agreed provider/model pair shape",
+"F17": "Pin the Python and TypeScript submit-tool name derivations with a drift-detecting test",
+"F18": "Nothing excluded because the slice is the whole feature",
+"F19": "pi-code itself is never touched (owner boundary; wrapper is nWave-owned pi-code-nwave)",
+"F2": "Role dispatches on pi end with an accepted submit call by construction, and every dispatch records the model that actually ran; a future submit-name drift fails a test instead of a role after minutes of work",
+"F20": "Bundle-based reminders (nwdes prompt appending to role bundles) are out of scope: bundles are host-agnostic and the submit envelope is pi-only, so the fix was relocated to the pi wrapper",
+"F21": "nwave-ai model provider expansion (deferred slice) is not part of this feature; it stays deferred per the ADR",
+"F22": "Fix lives in the pi wrapper (agent/index.ts), not the nwdes bundle: bundles are host-agnostic by contract, the submit_<role> envelope is pi-only; the wrapper already computes submitToolName(role) so the reminder shares that single derivation",
+"F23": "The model recorded in the requests log is the observed child model from pi child results (model field), recorded as evidence; nwdes never executes models and selection is never derived from a competence label",
+"F24": "Pair-format design row (provider/model shape shared with the deferred nwave-ai model slice) is still an open item to record as durable authority",
+"F25": "A host session dispatches a long real-work nw- role child; the child is reminded in its prompt to end with the accepted submit call, so the lane unblocks instead of failing after minutes of work",
+"F26": "Relief: the failure mode that wasted minutes per dispatch is gone",
+"F27": "The owner inspects the per-session requests log and sees which model actually ran for each role dispatch, without guessing",
+"F28": "Confidence: model facts are evidence, not intent",
+"F29": "A dispatched nw- role child's prompt ends with one host-scoped line naming its submit tool; the child ends with an accepted submit call instead of prose",
+"F3": "Child prompt carries the submit reminder",
+"F30": "Dispatches stop failing with 'no valid submit call' on long real-work turns",
+"F31": "A dispatch adds a model field to ~/.pi/agent/nwave-requests/<sessionId>.jsonl recording the child model that actually ran",
+"F32": "Model facts are recorded evidence per dispatch",
+"F33": "Changing one submit-name derivation without the other makes a test fail naming the Python/TypeScript divergence",
+"F34": "Future submit-name drift is caught by a test, not by a role after minutes of work",
+"F35": "The reminder is appended by the pi wrapper only: agent/index.ts appends one host-scoped line naming submitToolName(subagent_type) to every nw- role child prompt; pi-code is never touched; non-nw subagent types keep the unchanged prompt",
+"F36": "Resolves the product Open item: the shared pair-format design row is a JSON object {provider, model}. The wrapper derives it from pi's observed provider/model string (SingleResult.model) by splitting on the first '/', and writes model:{provider,model} into the requests log record; when pi reports no model the field is omitted. The deferred nwave-ai model slice reads the same row",
+"F37": "Claim-to-checker: the change adds no state machine; envelope acceptance semantics are unchanged (classify.ts). Local claims are pure-function totality/agreement and additive record fields, checked by the repository's executable tests (vitest in pi-code-nwave, pytest in tests/pi). Quint/TLA+/Agda not selected; no state-model claim exists to model-check",
+"F38": "Paradigm procedural: imperative wrapper glue; no domain objects or services are introduced",
+"F39": "pi-code itself is never touched; the wrapper pi-code-nwave is nWave-owned and may consume pi-code's runtime output shape (SingleResult.model)",
+"F4": "A pi session dispatches any nw- role child",
+"F40": "logRequest must never fail a delegation (existing catch-all is retained)",
+"F41": "Bundle-based reminders are out of scope (bundles are host-agnostic); nwave-ai model provider expansion stays deferred per ADR",
+"F42": "The recorded model is evidence from pi child results only; nwdes never executes models and selection is never derived from a competence label",
+"F43": "Single derivation the envelope check already uses; the reminder shares it so reminder and check cannot disagree by construction",
+"F44": "Python owner of the same derivation; the drift test consults it, not a copy",
+"F45": "Gains the model pair field in the same record; catch-all retained",
+"F46": "Mirrors pi SingleResult; gains model?: string so the wrapper can observe the child model",
+"F47": "S3 target: the drift test extends this file's submit-name coverage; to_pi_role is the existing owner the file maps, and submit_tool is consulted via scripts/shared/pi_role_mapping.py:40",
+"F48": "nw- child prompts gain one trailing reminder line naming the role's submit tool",
+"F49": "Requests log record gains optional model:{provider,model}",
+"F5": "the wrapper builds the child prompt",
+"F50": "New reminder and model-field assertions",
+"F51": "New drift test",
+"F52": "Additive optional model:{provider,model} field; record shape otherwise unchanged",
+"F53": "nwdes measure --requests reads via jq; JSONL consumers tolerate added fields",
+"F54": "Prompt gains one trailing reminder line; reply/acceptance semantics unchanged",
+"F55": "classify.ts is untouched; the reminder is additive text the check ignores",
+"F56": "Name shape unchanged; the S3 drift test pins it against the Python owner",
+"F57": "Python derivation unchanged; the drift test now cross-checks it against the TS owner",
+"F58": "No existing oracle to relocate and no target to prefactor: all three slices are small additive changes behind existing seams (agent/index.ts, existing test files) already exercised by their current oracles",
+"F59": "pi wrapper Agent tool execute(subagent_type, prompt) in pi-code-nwave/extensions/agent/index.ts",
+"F6": "the prompt ends with one host-scoped line naming the role's submit tool (submit_<role>), so a long real-work child is reminded to terminate with the accepted submit call",
+"F60": "pi subagent tool receives the child prompt",
+"F61": "~/.pi/agent/nwave-requests/<sessionId>.jsonl record",
+"F62": "wrapper -> pi-code subagent runtime API and filesystem log; nothing depends back on the wrapper",
+"F63": "submit_tool(r) in Python equals submitToolName(r) in TypeScript for every role name r",
+"F64": "role names matching ^[a-z][a-z0-9-]*$",
+"F65": "nw-solution-architect",
+"F66": "nw-acceptance-designer",
+"F67": "n/a for pure string map",
+"F68": "run both derivations on the same inputs and compare outputs",
+"F69": "change one derivation while the other is unchanged",
+"F7": "Dispatch logs the observed model",
+"F70": "every nw- role child prompt ends with exactly one reminder line naming submitToolName(role)",
+"F71": "nw-x",
+"F72": "one line per dispatch is observable from the mocked subagent task argument",
+"F73": "logRequest never fails a delegation",
+"F74": "unwritable log dir",
+"F75": "existing catch-all is retained",
+"F76": "every nw- role child prompt carries one host-scoped reminder line naming the role's submit tool",
+"F77": "a long real-work child ends in prose and the dispatch fails with 'no valid submit call' after minutes of work",
+"F78": "subagent_type starting with 'nw-'",
+"F79": "the task argument passed to pi's subagent tool ends with the reminder line",
+"F8": "A pi session dispatches an nw- role child that runs",
+"F80": "direct subagent tool dispatch and non-pi hosts (no reminder, envelope check still rejects non-submit replies)",
+"F81": "subagent_type starting with nw- and a role name matching ^[a-z][a-z0-9-]*$",
+"F82": "non-nw subagent_type (no reminder line; prompt unchanged)",
+"F83": "pi child result without a model field (model pair omitted from the log record)",
+"F84": "candidate",
+"F85": "argued: the reminder shares the single submitToolName derivation with the envelope check (classify.ts), so reminder and check cannot disagree by construction; the S3 drift test pins the Python/TS agreement",
+"F86": "argued: the reminder is constructed for any nw- role via submitToolName; non-nw subagent types take the unchanged path",
+"F87": "argued: the reminder is observed in the task argument the wrapper passes to pi's subagent tool, mocked in vitest",
+"F88": "argued: accepted-submit enforcement is the existing envelope check (classify.ts); the reminder raises child compliance but no temporal guarantee is claimed",
+"F89": "pi changes or drops SingleResult.model",
+"F9": "the wrapper logs the role start/end",
+"F90": "log stays additive; model pair omitted when absent",
+"F91": "log records without model",
+"F92": "a delegation failing because of logging",
+"F93": "model facts missing until the pi contract is rechecked",
+"F94": "dispatch that bypasses the wrapper (direct subagent tool, non-pi hosts)",
+"F95": "envelope check still rejects non-submit replies",
+"F96": "no reminder on those paths",
+"F97": "silent acceptance of a prose reply",
+"F98": "reminder absent by design outside pi dispatches",
+"F99": "submitToolName is the single derivation"
+},
+"product": {
+"decisions": [
+{
+"status": {
+"kind": "Confirmed"
+},
+"text": "F22"
+},
+{
+"status": {
+"kind": "Confirmed"
+},
+"text": "F23"
+},
+{
+"status": {
+"kind": "Open",
+"owner": "Product"
+},
+"text": "F24"
+}
+],
+"journey": [
+{
+"emotion": "F26",
+"step": "F25"
+},
+{
+"emotion": "F28",
+"step": "F27"
+}
+],
+"promises": [
+{
+"id": "P1",
+"kind": "Outcome",
+"text": "F2"
+},
+{
+"given": "F4",
+"id": "P2",
+"kind": "Scenario",
+"then": "F6",
+"title": "F3",
+"when": "F5"
+},
+{
+"given": "F8",
+"id": "P3",
+"kind": "Scenario",
+"then": "F10",
+"title": "F7",
+"when": "F9"
+},
+{
+"given": "F12",
+"id": "P4",
+"kind": "Scenario",
+"then": "F14",
+"title": "F11",
+"when": "F13"
+}
+],
+"scope_in": [
+"F15",
+"F16",
+"F17"
+],
+"scope_out": [
+"F18",
+"F19",
+"F20",
+"F21"
+],
+"slices": [
+{
+"id": "S1",
+"observation": "F29",
+"promises": [
+"P1",
+"P2"
+],
+"work": {
+"size": "S",
+"value": "F30"
+}
+},
+{
+"depends_on": [
+"S1"
+],
+"id": "S2",
+"observation": "F31",
+"promises": [
+"P3"
+],
+"work": {
+"size": "S",
+"value": "F32"
+}
+},
+{
+"depends_on": [
+"S1"
+],
+"id": "S3",
+"observation": "F33",
+"promises": [
+"P4"
+],
+"work": {
+"size": "S",
+"value": "F34"
+}
+}
+]
+},
+"request": "F1",
+"schema": "nwdes.handoff",
+"scope": {
+"id": "wrapper-submission-envelope",
+"kind": "Feature"
+},
+"version": 4,
+"work": {
+"size": "S",
+"value": "F2"
+}
+}
