@@ -286,5 +286,23 @@ describe('Agent extension', () => {
       const r = await run(async () => childOk('ok'), undefined, '/nonexistent-dir/x')
       expect(r.isError).toBeUndefined()
     })
+
+    describe('observed child model', () => {
+      // Dispatch logs the observed model (P3): the per-session requests record gains the
+      // model pair {provider, model} derived from pi's observed child model string.
+      const withModel = (model?: string) => async () => outcome('ok', { results: [{ exitCode: 0, stopReason: 'stop', ...(model !== undefined && { model }) }] })
+
+      it('should record the observed child model as the pair {provider, model}', async () => {
+        const dir = tmpLog()
+        await run(withModel('z-ai/glm-5.3-flash'), { subagent_type: 'nw-x', prompt: 'go' }, dir)
+        expect(lines(dir, 'sess-1')[0]).toMatchObject({ model: { provider: 'z-ai', model: 'glm-5.3-flash' } })
+      })
+
+      it('should omit the model field when pi reports no child model', async () => {
+        const dir = tmpLog()
+        await run(withModel(), { subagent_type: 'nw-x', prompt: 'go' }, dir)
+        expect(lines(dir, 'sess-1')[0]).not.toHaveProperty('model')
+      })
+    })
   })
 })
