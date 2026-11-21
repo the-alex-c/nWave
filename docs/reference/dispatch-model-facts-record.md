@@ -136,11 +136,21 @@ The owner further chose to **explore the two slices separately** and keep
 reference files for each, before (or instead of) immediately bundling them
 into one Request.
 
+**Update (decision record):** after investigating what consumes
+`model_runtime`, Slice 1 was **deferred** — the provider-expansion authority
+has no live consumer today, while pi natively consumes per-role
+`model`/`modelAlias` declarations. Rationale, rejected options, and
+revisit conditions: [`adr-defer-nwave-ai-model-provider-expansion.md`](./adr-defer-nwave-ai-model-provider-expansion.md).
+Slice 2 (pi wrapper capture) is next.
+
 ## 6. Open items
 
-- [ ] Record the pair-format design row (durable authority).
-- [ ] Deliver Slice 1 (nwave-ai model provider expansion) via nwdes.
-- [ ] Deliver Slice 2 (pi wrapper `logRequest` model capture) via nwdes.
+- [ ] Record the pair-format design row (durable authority; shared contract
+      for both slices).
+- [x] **Deferred** — Slice 1 (nwave-ai model provider expansion):
+      [`adr-defer-nwave-ai-model-provider-expansion.md`](./adr-defer-nwave-ai-model-provider-expansion.md)
+      records why, the rejected framings, and the conditions for revisiting.
+- [ ] Deliver Slice 2 (pi wrapper `logRequest` model capture) via nwdes — next.
 - [ ] Deliver the dispatch-defect bundle-line fix (§2) — independent of both slices.
 - [ ] Retry the `nw-acceptance-designer` dispatch for `tui-observe` S1 after
       the bundle fix lands.
